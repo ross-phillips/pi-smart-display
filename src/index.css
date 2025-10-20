@@ -8,3 +8,24 @@
 
 /* comfy default font stack */
 :root { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+
+/* Apple-esque motion and glass utilities */
+@layer utilities {
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .motion-fade-up { opacity: 0; animation: fade-up 200ms ease-out forwards; }
+  .hover-lift { @apply transition-transform duration-200 ease-out; }
+  .hover-lift:hover { transform: translateY(-1px); }
+
+  .glass-card { @apply rounded-[22px] bg-white/70 backdrop-blur-md border border-white/40; }
+  .glass-shadow { box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 10px 20px rgba(0,0,0,0.04); }
+}
+
+/* Apple-esque dark glass utilities */
+@layer utilities {
+  .glass-card-dark { @apply rounded-[22px] bg-white/5 backdrop-blur-md border border-white/10; }
+  .glass-shadow-dark { box-shadow: 0 1px 2px rgba(0,0,0,0.30), 0 10px 20px rgba(0,0,0,0.35); }
+}
