@@ -80,10 +80,17 @@ app.get("/api/meals", async (req, res) => {
     }
     console.log(`DEBUG: perDay map:`, Array.from(perDay.entries()).slice(0, 5));
     
+        // Generate Monday-Sunday of current week instead of today+6 days
         const out = [];
+        const now = new Date();
+        const monday = new Date(now);
+        const dow = (now.getDay() + 6) % 7; // 0 = Monday
+        monday.setDate(now.getDate() - dow);
+        monday.setHours(0, 0, 0, 0);
+        
         for (let i=0;i<7;i++) {
-          const d = new Date(start);
-          d.setDate(start.getDate()+i);
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
           const k = toYmd(d);
           const event = perDay.get(k);
           console.log(`DEBUG: Day ${i}: ${k} -> ${event ? event.title : 'null'}`);
