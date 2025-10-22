@@ -1,11 +1,11 @@
-export default {
+module.exports = {
   apps: [{
     name: 'pi-smart-display',
     script: 'server/server.js',
     cwd: '/home/ross/pi-smart-display',
     env: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 8787
     },
     restart_delay: 1000,
     max_restarts: 10,

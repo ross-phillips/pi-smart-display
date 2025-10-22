@@ -1,0 +1,16 @@
+[Unit]
+Description=Network Connectivity Monitor
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/ross/pi-smart-display/network-monitor.py
+WorkingDirectory=/home/ross/pi-smart-display
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+RestartSec=10
+User=ross
+
+[Install]
+WantedBy=multi-user.target
