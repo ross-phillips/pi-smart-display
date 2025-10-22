@@ -46,15 +46,19 @@ app.get("/api/meals", async (req, res) => {
     const expanded = [];
     for (const e of evts) {
       if (e.rrule && /FREQ=WEEKLY/.test(e.rrule)) {
+        console.log(`DEBUG: Processing recurring event "${e.title}" with RRULE: ${e.rrule}`);
         const interval = parseInt((e.rrule.match(/INTERVAL=(\d+)/)?.[1]||'1'),10);
         const bydays = (e.rrule.match(/BYDAY=([A-Z,]+)/)?.[1] || idxToWd[new Date(e.start).getDay()]).split(',');
+        console.log(`DEBUG: Recurring event "${e.title}" - interval: ${interval}, bydays: ${bydays}, start: ${e.start}`);
         for (let d = new Date(windowStart); d < windowEnd; d.setDate(d.getDate()+1)) {
           const wd = idxToWd[d.getDay()];
           if (!bydays.includes(wd)) continue;
           const weeks = Math.floor((d - new Date(e.start)) / (7*24*60*60*1000));
           if (weeks < 0 || weeks % interval !== 0) continue;
           const occStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0);
-          expanded.push({ day: new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(occStart), title: e.title });
+          const dayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(occStart);
+          console.log(`DEBUG: Adding recurring "${e.title}" for ${dayStr} (week ${weeks})`);
+          expanded.push({ day: dayStr, title: e.title });
         }
       } else {
         const eventStart = new Date(e.start);
