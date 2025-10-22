@@ -29,6 +29,8 @@ app.get("/api/meals", async (req, res) => {
         if (line.startsWith("RRULE:")) cur.rrule = line.slice(6).trim();
       }
     }
+    console.log(`DEBUG: Parsed ${evts.length} events from ICS`);
+    console.log(`DEBUG: First few events:`, evts.slice(0, 3));
     for (const e of evts) { e.start = toISO(e.start); e.end = toISO(e.end); }
 
     const start = new Date();
