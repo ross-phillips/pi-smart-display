@@ -74,10 +74,10 @@ function Clock({ tz }) {
 
   return (
     <div className="flex items-baseline gap-8 mb-8">
-      <div className="leading-none text-[104px] xl:text-[142px] font-semibold tracking-tight tabular-nums">
+      <div className="leading-none text-[140px] xl:text-[180px] font-semibold tracking-tight tabular-nums">
         {timeStr}
       </div>
-      <div className="text-[65px] xl:text-[77px] text-gray-300 font-medium tracking-tight">{dateStr}</div>
+      <div className="text-[90px] xl:text-[110px] text-gray-300 font-medium tracking-tight">{dateStr}</div>
     </div>
   );
 }
