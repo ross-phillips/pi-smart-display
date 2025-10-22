@@ -200,25 +200,60 @@ function NewsCard({ apiBase, feeds }) {
 // Calendars card removed
 
 function MealsPanel({ apiBase, tz }) {
+  const [items, setItems] = useState([]);
+  const [err, setErr] = useState(null);
+  
+  useEffect(() => {
+    console.log('MealsPanel: Making API call to', apiBase);
+    const webcal = 'webcal://p46-caldav.icloud.com/published/2/MTMyNjM0ODkwNDEzMjYzNKSpCj-NKjq9g19C5MKQfrSNZyeBCZv5-gFMIpBhNeKjZ7PbpGaJJCJkL0Dp886CKtCK1AatLOY-qQzVRklSaA4';
+    const q = encodeURIComponent(webcal);
+    const url = `${apiBase}/meals?u=${q}&tz=${encodeURIComponent(tz)}`;
+    console.log('MealsPanel: Fetching URL:', url);
+    fetch(url)
+      .then(r => {
+        console.log('MealsPanel: Response status:', r.status);
+        return r.json();
+      })
+      .then(data => {
+        console.log('MealsPanel: Received data:', data);
+        setItems(data);
+      })
+      .catch(err => {
+        console.error('MealsPanel: Error:', err);
+        setErr(err);
+      });
+  }, [apiBase, tz]);
+
+  if (err) return <div className={defaultStyle.card}>Meals error: {String(err.message || err)}</div>;
+  
+  // Reorder to Monday-first week without changing backend data
+  const byDay = new Map((items || []).map((d) => [d.day, d]));
+  const fmtYmd = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
+  const now = new Date();
+  const monday = new Date(now);
+  const dow = (now.getDay() + 6) % 7; // 0 = Monday
+  monday.setDate(now.getDate() - dow);
+  const ordered = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const key = fmtYmd.format(d);
+    return byDay.get(key) || { day: key, title: null };
+  });
+
   return (
     <div className={defaultStyle.card}>
       <h3 className="text-[32px] xl:text-[36px] font-semibold tracking-tight mb-3 text-white/90 text-center">Meals Planner</h3>
       <div className="text-green-400 text-lg mb-4">✅ MealsPanel is rendering!</div>
       <div className="text-yellow-400 text-sm mb-2">API Base: {apiBase}</div>
       <div className="text-yellow-400 text-sm mb-2">Timezone: {tz}</div>
+      <div className="text-yellow-400 text-sm mb-2">Items count: {items.length}</div>
       <ul className="space-y-2">
-        <li className="flex items-center justify-between text-xl xl:text-xl">
-          <div className="text-gray-300">Monday</div>
-          <div className="text-white font-medium text-right truncate ml-6">Test Meal 1</div>
-        </li>
-        <li className="flex items-center justify-between text-xl xl:text-xl">
-          <div className="text-gray-300">Tuesday</div>
-          <div className="text-white font-medium text-right truncate ml-6">Test Meal 2</div>
-        </li>
-        <li className="flex items-center justify-between text-xl xl:text-xl">
-          <div className="text-gray-300">Wednesday</div>
-          <div className="text-white font-medium text-right truncate ml-6">Test Meal 3</div>
-        </li>
+        {ordered.map((e, i) => (
+          <li key={i} className="flex items-center justify-between text-xl xl:text-xl">
+            <div className="text-gray-300">{new Intl.DateTimeFormat(undefined, { weekday: 'long', timeZone: tz }).format(new Date(e.day))}</div>
+            <div className="text-white font-medium text-right truncate ml-6">{e.title ?? 'NO TITLE'}</div>
+          </li>
+        ))}
       </ul>
     </div>
   );
