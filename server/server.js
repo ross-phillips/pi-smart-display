@@ -34,8 +34,8 @@ app.get("/api/meals", async (req, res) => {
     for (const e of evts) { e.start = toISO(e.start); e.end = toISO(e.end); }
 
     const start = new Date();
-    const windowStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-    const windowEnd = new Date(windowStart.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const windowStart = new Date(start.getFullYear(), start.getMonth(), 1); // Start of current month
+    const windowEnd = new Date(start.getFullYear(), start.getMonth() + 1, 1); // Start of next month
     const idxToWd = ["SU","MO","TU","WE","TH","FR","SA"];
 
     console.log(`DEBUG: Window start: ${windowStart.toISOString()}, end: ${windowEnd.toISOString()}`);
