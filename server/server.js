@@ -73,13 +73,18 @@ app.get("/api/meals", async (req, res) => {
     for (const e of expanded.sort((a,b)=> a.day.localeCompare(b.day))) {
       if (!perDay.has(e.day)) perDay.set(e.day, e);
     }
+    console.log(`DEBUG: perDay map:`, Array.from(perDay.entries()).slice(0, 5));
+    
     const out = [];
     for (let i=0;i<7;i++) {
       const d = new Date(windowStart);
       d.setDate(d.getDate()+i);
       const k = toYmd(d);
-      out.push(perDay.get(k) || { day: k, title: null });
+      const event = perDay.get(k);
+      console.log(`DEBUG: Day ${i}: ${k} -> ${event ? event.title : 'null'}`);
+      out.push(event || { day: k, title: null });
     }
+    console.log(`DEBUG: Final output:`, out);
 
     setCache(key, out, 2*60*1000);
     res.json(out);
