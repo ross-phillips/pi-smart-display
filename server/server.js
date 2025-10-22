@@ -33,9 +33,11 @@ app.get("/api/meals", async (req, res) => {
     console.log(`DEBUG: First few events:`, evts.slice(0, 3));
     for (const e of evts) { e.start = toISO(e.start); e.end = toISO(e.end); }
 
-    const start = new Date();
-    const windowStart = new Date(start.getFullYear(), start.getMonth(), 1); // Start of current month
-    const windowEnd = new Date(start.getFullYear(), start.getMonth() + 1, 1); // Start of next month
+        const start = new Date();
+        const windowStart = new Date(start);
+        windowStart.setHours(0, 0, 0, 0); // Start of today
+        const windowEnd = new Date(start);
+        windowEnd.setDate(start.getDate() + 14); // Next 14 days
     const idxToWd = ["SU","MO","TU","WE","TH","FR","SA"];
 
     console.log(`DEBUG: Window start: ${windowStart.toISOString()}, end: ${windowEnd.toISOString()}`);
@@ -78,15 +80,15 @@ app.get("/api/meals", async (req, res) => {
     }
     console.log(`DEBUG: perDay map:`, Array.from(perDay.entries()).slice(0, 5));
     
-    const out = [];
-    for (let i=0;i<7;i++) {
-      const d = new Date(windowStart);
-      d.setDate(d.getDate()+i);
-      const k = toYmd(d);
-      const event = perDay.get(k);
-      console.log(`DEBUG: Day ${i}: ${k} -> ${event ? event.title : 'null'}`);
-      out.push(event ? { day: k, title: event.title } : { day: k, title: null });
-    }
+        const out = [];
+        for (let i=0;i<7;i++) {
+          const d = new Date(start);
+          d.setDate(start.getDate()+i);
+          const k = toYmd(d);
+          const event = perDay.get(k);
+          console.log(`DEBUG: Day ${i}: ${k} -> ${event ? event.title : 'null'}`);
+          out.push(event ? { day: k, title: event.title } : { day: k, title: null });
+        }
     console.log(`DEBUG: Final output:`, out);
 
     setCache(key, out, 2*60*1000);
