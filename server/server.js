@@ -92,8 +92,8 @@ app.get("/api/meals", async (req, res) => {
         const out = [];
         const now = new Date();
         const mondayForOutput = new Date(now);
-        const dow = (now.getDay() + 6) % 7; // 0 = Monday
-        mondayForOutput.setDate(now.getDate() - dow);
+        const dowForOutput = (now.getDay() + 6) % 7; // 0 = Monday
+        mondayForOutput.setDate(now.getDate() - dowForOutput);
         mondayForOutput.setHours(0, 0, 0, 0);
         
         for (let i=0;i<7;i++) {
