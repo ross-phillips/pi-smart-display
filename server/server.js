@@ -197,6 +197,83 @@ app.get("/api/caldays", async (req, res) => {
     const start = String(req.query.start || ""); // YYYY-MM-DD
     const end = String(req.query.end || "");   // YYYY-MM-DD
     if (!icsUrl || !start || !end) return res.status(400).json({ error: "u,start,end required" });
+    
+    // Handle local file path
+    if (icsUrl.startsWith('/home/')) {
+      const fs = await import('fs');
+      const txt = fs.readFileSync(icsUrl, 'utf8');
+      const events = parseICS(txt, icsUrl);
+      
+      const windowStart = new Date(`${start}T00:00:00`);
+      const windowEnd = new Date(`${end}T23:59:59`);
+      const pad = (n) => String(n).padStart(2, '0');
+      const toYmd = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+      const days = new Map();
+      const allKeys = [];
+      for (let d = new Date(windowStart.getTime()); d <= windowEnd; d.setDate(d.getDate()+1)) {
+        const k = toYmd(d);
+        allKeys.push(k);
+        days.set(k, []);
+      }
+
+      for (const e of events) {
+        const es = new Date(e.start);
+        let ee = new Date(e.end || e.start);
+        
+        if (e.allDay) {
+          if (e.endIsDate && e.end) {
+            ee = new Date(ee.getFullYear(), ee.getMonth(), ee.getDate(), ee.getHours(), ee.getMinutes(), ee.getSeconds());
+            ee.setDate(ee.getDate() - 1);
+          } else if (!e.end) {
+            ee = new Date(es);
+          }
+        }
+
+        if (ee < windowStart || es > windowEnd) continue;
+
+        const d0 = new Date(Math.max(es.getTime(), windowStart.getTime()));
+        d0.setHours(0,0,0,0);
+        const endDay = new Date(Math.min(ee.getTime(), windowEnd.getTime()));
+        endDay.setHours(0,0,0,0);
+
+        for (let d = new Date(d0); d <= endDay; d.setDate(d.getDate()+1)) {
+          const k = toYmd(d);
+          const arr = days.get(k) || [];
+          let time = null;
+          if (!e.allDay) {
+            const startKey = toYmd(es);
+            if (startKey === k) {
+              try {
+                time = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(es);
+              } catch {
+                time = null;
+              }
+            }
+          }
+          if (arr.length < 3) arr.push({ title: e.title, allDay: !!e.allDay, time });
+          days.set(k, arr);
+        }
+      }
+
+      const out = allKeys.map((k) => {
+        const dayEvents = days.get(k) || [];
+        const sorted = dayEvents.sort((a, b) => {
+          if (a.allDay && !b.allDay) return -1;
+          if (!a.allDay && b.allDay) return 1;
+          if (!a.allDay && !b.allDay) {
+            const timeA = a.time || '23:59';
+            const timeB = b.time || '23:59';
+            return timeA.localeCompare(timeB);
+          }
+          return 0;
+        });
+        return { day: k, titles: sorted };
+      });
+      
+      return res.json(out);
+    }
+    
     icsUrl = decodeURIComponent(icsUrl).replace(/^webcal:\/\//i, 'https://');
 
     const key = `caldays:v1:${icsUrl}:${tz}:${start}:${end}`;

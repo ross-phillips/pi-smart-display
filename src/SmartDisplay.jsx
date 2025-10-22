@@ -261,12 +261,32 @@ function MonthCalendarPanel({ tz, apiBase }) {
   const wkLabels = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const isToday = (d) => new Date(d).toDateString() === now.toDateString();
   const monthRange = `${new Intl.DateTimeFormat(undefined, { month:'long', timeZone: tz }).format(days[0])} — ${new Intl.DateTimeFormat(undefined, { month:'long', timeZone: tz }).format(days[27])}`;
+  
+  // Bin icon function
+  const getBinIcon = (dayStr) => {
+    const binEvents = binEventsByDay[dayStr] || [];
+    for (const event of binEvents) {
+      const title = event.title || '';
+      if (title.includes('Rubbish Bin Collection')) {
+        return <span className="text-green-500 text-lg">🗑️</span>; // Green bin
+      } else if (title.includes('Recycling Bin Collection')) {
+        return <span className="text-blue-500 text-lg">♻️</span>; // Blue bin
+      } else if (title.includes('Garden Waste Bin Collection')) {
+        return <span className="text-amber-600 text-lg">🍂</span>; // Brown bin
+      }
+    }
+    return null;
+  };
 
   const [eventsByDay, setEventsByDay] = useState({});
+  const [binEventsByDay, setBinEventsByDay] = useState({});
+  
   useEffect(() => {
     const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
     const startStr = fmt.format(days[0]);
     const endStr = fmt.format(days[27]);
+    
+    // Fetch main calendar
     const webcal = 'webcal://p46-caldav.icloud.com/published/2/MTMyNjM0ODkwNDEzMjYzNKSpCj-NKjq9g19C5MKQfrTyx9HprnIe03QgHJf3jRCWM8dJ3FjG3_WV2YGQtexKoQIE0pBoM0siWxpoojNJd5U';
     const q = encodeURIComponent(webcal);
     fetch(`${apiBase}/caldays?u=${q}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`)
@@ -275,6 +295,18 @@ function MonthCalendarPanel({ tz, apiBase }) {
         const map = {};
         for (const it of arr) map[it.day] = it.titles || [];
         setEventsByDay(map);
+      })
+      .catch(()=>{});
+      
+    // Fetch bin collection calendar
+    const binPath = '/home/ross/bin_collection.ics';
+    const binQ = encodeURIComponent(binPath);
+    fetch(`${apiBase}/caldays?u=${binQ}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`)
+      .then(r=>r.json())
+      .then(arr => {
+        const map = {};
+        for (const it of arr) map[it.day] = it.titles || [];
+        setBinEventsByDay(map);
       })
       .catch(()=>{});
   }, [apiBase, tz, monday]);
@@ -294,7 +326,12 @@ function MonthCalendarPanel({ tz, apiBase }) {
             const titles = eventsByDay[k] || [];
             return (
               <div key={i} className={`rounded-md border border-white/10 flex flex-col p-2 ${isToday(d) ? 'bg-white/10' : ''}`}>
-                <div className="text-2xl text-white text-right">{d.getDate()}</div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    {getBinIcon(k)}
+                  </div>
+                  <div className="text-2xl text-white text-right">{d.getDate()}</div>
+                </div>
                 <div className="mt-1 space-y-1 overflow-hidden">
                   {titles.slice(0,3).map((t, idx) => {
                     const isObj = t && typeof t === 'object';
@@ -305,7 +342,7 @@ function MonthCalendarPanel({ tz, apiBase }) {
                     return (
                       <div
                         key={idx}
-                        className={`truncate text-base xl:text-xl ${isAll ? 'bg-white text-neutral-900 rounded px-1 font-medium' : 'text-gray-200'}`}
+                        className={`truncate text-[14.4px] xl:text-[18px] ${isAll ? 'bg-white text-neutral-900 rounded px-1 font-medium' : 'text-gray-200'}`}
                       >
                         {label}
                       </div>
