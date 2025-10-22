@@ -243,17 +243,20 @@ function MealsPanel({ apiBase, tz }) {
 
 function MonthCalendarPanel({ tz, apiBase }) {
   const now = new Date();
-  // Find Monday of current week
-  const monday = new Date(now);
-  const dow = (now.getDay() + 6) % 7; // 0..6 Monday..Sunday
-  monday.setDate(now.getDate() - dow);
+  // Find Monday of current week - memoize to prevent constant re-renders
+  const monday = useMemo(() => {
+    const m = new Date(now);
+    const dow = (now.getDay() + 6) % 7; // 0..6 Monday..Sunday
+    m.setDate(now.getDate() - dow);
+    return m;
+  }, [now.getTime() - (now.getTime() % (7 * 24 * 60 * 60 * 1000))]); // Only recalculate weekly
 
   // Build 4 weeks (28 days)
-  const days = Array.from({ length: 28 }, (_, i) => {
+  const days = useMemo(() => Array.from({ length: 28 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     return d;
-  });
+  }), [monday]);
 
   const wkLabels = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const isToday = (d) => new Date(d).toDateString() === now.toDateString();
