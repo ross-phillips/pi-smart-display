@@ -34,10 +34,15 @@ app.get("/api/meals", async (req, res) => {
     for (const e of evts) { e.start = toISO(e.start); e.end = toISO(e.end); }
 
         const start = new Date();
-        const windowStart = new Date(start);
-        windowStart.setHours(0, 0, 0, 0); // Start of today
-        const windowEnd = new Date(start);
-        windowEnd.setDate(start.getDate() + 14); // Next 14 days
+        // Calculate Monday-Sunday of current week for recurring events
+        const monday = new Date(start);
+        const dow = (start.getDay() + 6) % 7; // 0 = Monday
+        monday.setDate(start.getDate() - dow);
+        monday.setHours(0, 0, 0, 0);
+        
+        const windowStart = new Date(monday);
+        const windowEnd = new Date(monday);
+        windowEnd.setDate(monday.getDate() + 6); // Sunday of current week
     const idxToWd = ["SU","MO","TU","WE","TH","FR","SA"];
 
     console.log(`DEBUG: Window start: ${windowStart.toISOString()}, end: ${windowEnd.toISOString()}`);
