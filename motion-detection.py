@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
-"""
-PIR Motion Detection for Smart Display
-Turns on monitor when motion is detected, turns off after timeout
-"""
-
 import RPi.GPIO as GPIO
-import subprocess
 import time
+import subprocess
+import logging
 import signal
 import sys
-import logging
+import os
 
 # Configuration
-PIR_PIN = 17  # GPIO pin connected to PIR sensor
-TIMEOUT = 300  # Turn off monitor after 5 minutes of no motion (deactivateDelay)
-OFF_HOUR = 23  # Turn off at 11 PM
-ON_HOUR = 7    # Turn on at 7 AM
+PIR_PIN = 17
+TIMEOUT = 300  # 1 minute
+OFF_HOUR = 23  # 11 PM
+ON_HOUR = 7    # 7 AM
 LOG_FILE = '/home/ross/pi-smart-display/motion.log'
 
 # Setup logging
@@ -29,100 +25,122 @@ class MotionDetector:
     def __init__(self):
         self.motion_detected = False
         self.last_motion = time.time()
-        self.monitor_on = False
+        self.monitor_on = True
+        self.running = True
         
-    def setup_gpio(self):
-        """Setup GPIO for PIR sensor"""
+        # Setup GPIO
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(PIR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-        GPIO.add_event_detect(PIR_PIN, GPIO.RISING, callback=self.motion_callback)
-        logging.info("PIR sensor setup complete on GPIO pin %d", PIR_PIN)
         
-    def motion_callback(self, channel):
-        """Called when motion is detected"""
-        self.motion_detected = True
-        self.last_motion = time.time()
-        logging.info("Motion detected!")
+        # Setup signal handler for graceful shutdown
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
         
+        logging.info("Motion detector started - Timeout: %d seconds", TIMEOUT)
+        
+        # Ensure monitor is on at startup if within active hours
+        current_hour = time.localtime().tm_hour
+        if not (current_hour >= OFF_HOUR or current_hour < ON_HOUR):
+            self.turn_on_monitor()
+        else:
+            self.turn_off_monitor()
+
+    def signal_handler(self, signum, frame):
+        logging.info("Received signal %d, shutting down...", signum)
+        self.running = False
+        GPIO.cleanup()
+        sys.exit(0)
+
     def turn_on_monitor(self):
-        """Turn on the monitor"""
+        """Turn on the monitor using wlr-randr"""
         if not self.monitor_on:
             try:
-                # Try wlr-randr first (for Wayland), fallback to vcgencmd
-                try:
-                    subprocess.run(['wlr-randr', '--output', 'HDMI-A-2', '--on'], check=True)
-                    logging.info("Monitor turned ON via wlr-randr")
-                except (subprocess.CalledProcessError, FileNotFoundError):
-                    subprocess.run(['vcgencmd', 'display_power', '1'], check=True)
-                    logging.info("Monitor turned ON via vcgencmd")
+                # Set display environment and use wlr-randr
+                env = os.environ.copy()
+                env['DISPLAY'] = ':0'
+                env['XDG_RUNTIME_DIR'] = '/run/user/1000'
+                
+                result = subprocess.run(['wlr-randr', '--output', 'HDMI-A-2', '--on'], 
+                                      check=True, capture_output=True, text=True, env=env)
+                logging.info("Monitor turned ON via wlr-randr: %s", result.stdout.strip())
                 self.monitor_on = True
-            except subprocess.CalledProcessError as e:
-                logging.error("Failed to turn on monitor: %s", e)
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                logging.error("Failed to turn on monitor with wlr-randr: %s", e)
+                # Fallback to vcgencmd
+                try:
+                    result = subprocess.run(['vcgencmd', 'display_power', '1'], 
+                                          check=True, capture_output=True, text=True)
+                    logging.info("Monitor turned ON via vcgencmd: %s", result.stdout.strip())
+                    self.monitor_on = True
+                except subprocess.CalledProcessError as e2:
+                    logging.error("Failed to turn on monitor with vcgencmd: %s", e2)
                 
     def turn_off_monitor(self):
-        """Turn off the monitor"""
+        """Turn off the monitor using wlr-randr"""
         if self.monitor_on:
             try:
-                # Try wlr-randr first (for Wayland), fallback to vcgencmd
-                try:
-                    subprocess.run(['wlr-randr', '--output', 'HDMI-A-2', '--off'], check=True)
-                    logging.info("Monitor turned OFF via wlr-randr")
-                except (subprocess.CalledProcessError, FileNotFoundError):
-                    subprocess.run(['vcgencmd', 'display_power', '0'], check=True)
-                    logging.info("Monitor turned OFF via vcgencmd")
+                # Set display environment and use wlr-randr
+                env = os.environ.copy()
+                env['DISPLAY'] = ':0'
+                env['XDG_RUNTIME_DIR'] = '/run/user/1000'
+                
+                result = subprocess.run(['wlr-randr', '--output', 'HDMI-A-2', '--off'], 
+                                      check=True, capture_output=True, text=True, env=env)
+                logging.info("Monitor turned OFF via wlr-randr: %s", result.stdout.strip())
                 self.monitor_on = False
-            except subprocess.CalledProcessError as e:
-                logging.error("Failed to turn off monitor: %s", e)
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                logging.error("Failed to turn off monitor with wlr-randr: %s", e)
+                # Fallback to vcgencmd
+                try:
+                    result = subprocess.run(['vcgencmd', 'display_power', '0'], 
+                                          check=True, capture_output=True, text=True)
+                    logging.info("Monitor turned OFF via vcgencmd: %s", result.stdout.strip())
+                    self.monitor_on = False
+                except subprocess.CalledProcessError as e2:
+                    logging.error("Failed to turn off monitor with vcgencmd: %s", e2)
                 
     def is_time_to_disable(self):
         """Check if current time is within the disable hours (11 PM to 7 AM)"""
         current_hour = time.localtime().tm_hour
         return current_hour >= OFF_HOUR or current_hour < ON_HOUR
-    
-    def run(self):
-        """Main loop"""
-        logging.info("Motion detector started")
         
+    def run(self):
+        """Main loop - simple polling instead of event detection"""
         try:
-            while True:
+            while self.running:
                 current_time = time.time()
                 
                 # Check if we're in the disable hours (11 PM to 7 AM)
                 if self.is_time_to_disable():
                     if self.monitor_on:
+                        logging.info("Disable hours active, turning off monitor")
                         self.turn_off_monitor()
                     time.sleep(60)  # Check every minute during disable hours
                     continue
                 
-                # Check if motion was detected
-                if self.motion_detected:
+                # Check for motion by polling GPIO
+                motion_value = GPIO.input(PIR_PIN)
+                if motion_value == 1:
+                    if not self.motion_detected:
+                        logging.info("Motion detected!")
+                        self.motion_detected = True
+                    self.last_motion = current_time
                     self.turn_on_monitor()
+                else:
                     self.motion_detected = False
                 
                 # Check if timeout has passed
                 if self.monitor_on and (current_time - self.last_motion) > TIMEOUT:
+                    logging.info("Timeout reached (%d seconds), turning off monitor", TIMEOUT)
                     self.turn_off_monitor()
                 
-                time.sleep(1)  # Check every second
+                time.sleep(0.1)  # Check every 100ms
                 
-        except KeyboardInterrupt:
-            logging.info("Motion detector stopped by user")
         except Exception as e:
             logging.error("Error in motion detector: %s", e)
         finally:
             GPIO.cleanup()
-            logging.info("GPIO cleanup complete")
 
-def signal_handler(sig, frame):
-    """Handle shutdown signals"""
-    logging.info("Received shutdown signal")
-    sys.exit(0)
-
-if __name__ == "__main__":
-    # Setup signal handlers
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    
+if __name__ == '__main__':
     detector = MotionDetector()
-    detector.setup_gpio()
     detector.run()

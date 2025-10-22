@@ -21,7 +21,7 @@ const defaultStyle = {
   grid: "grid gap-6 xl:gap-8",
   gridCols: "grid-cols-1 xl:grid-cols-[1fr_15%]",
   heading: "text-[36px] xl:text-[44px] font-bold tracking-tight text-white",
-  sub: "text-sm text-gray-400",
+  sub: "text-base text-gray-400",
 };
 
 function useRefresh(ms) {
@@ -74,10 +74,10 @@ function Clock({ tz }) {
 
   return (
     <div className="flex items-baseline gap-8 mb-8">
-      <div className="leading-none text-[115px] xl:text-[158px] font-semibold tracking-tight tabular-nums">
+      <div className="leading-none text-[184px] xl:text-[252px] font-semibold tracking-tight tabular-nums">
         {timeStr}
       </div>
-      <div className="text-[72px] xl:text-[86px] text-gray-300 font-medium tracking-tight">{dateStr}</div>
+      <div className="text-[115px] xl:text-[138px] text-gray-300 font-medium tracking-tight">{dateStr}</div>
     </div>
   );
 }
@@ -121,8 +121,8 @@ function WeatherCard({ apiBase, location }) {
       </div>
       <div className="flex items-center gap-5 xl:gap-6">
         <div className="text-[56px] xl:text-[64px] leading-none">{iconFor(current?.code)}</div>
-        <div className="text-[60px] xl:text-[72px] leading-none font-semibold">{Math.round(current?.temperature)}°</div>
-        <div className="text-gray-300 text-lg xl:text-xl">{current?.summary ?? ""}</div>
+        <div className="text-[60px] xl:text-[115px] leading-none font-semibold">{Math.round(current?.temperature)}°</div>
+        <div className="text-gray-300 text-xl xl:text-xl">{current?.summary ?? ""}</div>
       </div>
 
       {/* Today snapshots: 08:00, 13:00, 18:00 */}
@@ -134,10 +134,10 @@ function WeatherCard({ apiBase, location }) {
             const h = byHour.get(hr) || {};
             return (
               <div key={i} className="text-center">
-                <div className="text-base xl:text-lg text-gray-400">{String(hr).padStart(2, '0')}:00</div>
+                <div className="text-xl xl:text-xl text-gray-400">{String(hr).padStart(2, '0')}:00</div>
                 <div className="text-3xl xl:text-4xl">{iconFor(h.code)}</div>
-                <div className="text-lg xl:text-xl font-semibold">{h.temp != null ? Math.round(h.temp) : '-'}°</div>
-                <div className="text-sm xl:text-base text-gray-400">
+                <div className="text-xl xl:text-xl font-semibold">{h.temp != null ? Math.round(h.temp) : '-'}°</div>
+                <div className="text-base xl:text-xl text-gray-400">
                   {h.windSpeed != null && !Number.isNaN(h.windSpeed) ? Math.round(h.windSpeed) : "-"} mph • {degToCompass(h.windDir)}
                 </div>
               </div>
@@ -149,14 +149,14 @@ function WeatherCard({ apiBase, location }) {
       {/* 7-day vertical forecast */}
       <div className="mt-6 xl:mt-7 grid grid-cols-1 gap-4 xl:gap-5">
         {daily?.slice(0, 7).map((d, i) => (
-          <div key={i} className="flex items-center justify-between text-lg xl:text-xl">
+          <div key={i} className="flex items-center justify-between text-xl xl:text-xl">
             <div className="text-gray-300 w-44 xl:w-56 truncate">
               {new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
             </div>
             <div className="w-10 xl:w-12 text-center text-2xl xl:text-3xl">{iconFor(d.code)}</div>
             <div className="text-right tabular-nums w-44 xl:w-56">
               <span className="text-white font-semibold text-xl xl:text-2xl">{Math.round(d.tmax)}°</span>
-              <span className="text-gray-400 ml-3 text-lg xl:text-xl">{Math.round(d.tmin)}°</span>
+              <span className="text-gray-400 ml-3 text-xl xl:text-xl">{Math.round(d.tmin)}°</span>
             </div>
           </div>
         ))}
@@ -228,10 +228,10 @@ function MealsPanel({ apiBase, tz }) {
 
   return (
     <div className={defaultStyle.card}>
-      <h3 className="text-[24px] xl:text-[28px] font-semibold tracking-tight mb-3 text-white/90 text-center">Meals Planner</h3>
+      <h3 className="text-[32px] xl:text-[36px] font-semibold tracking-tight mb-3 text-white/90 text-center">Meals Planner</h3>
       <ul className="space-y-2">
         {ordered.map((e, i) => (
-          <li key={i} className="flex items-center justify-between text-lg xl:text-xl">
+          <li key={i} className="flex items-center justify-between text-xl xl:text-xl">
             <div className="text-gray-300">{new Intl.DateTimeFormat(undefined, { weekday: 'long', timeZone: tz }).format(new Date(e.day))}</div>
             <div className="text-white font-medium text-right truncate ml-6">{e.title ?? ''}</div>
           </li>
@@ -277,12 +277,12 @@ function MonthCalendarPanel({ tz, apiBase }) {
   }, [apiBase, tz, monday]);
 
   return (
-    <div className="fixed left-6 bottom-6 w-[82vw] h-[80vh]">
+    <div className="fixed left-7 bottom-7 w-[83vw] h-[82vh]">
       <div className={`${defaultStyle.card} w-full h-full p-6 flex flex-col`}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[24px] xl:text-[28px] font-semibold tracking-tight text-white/90">{monthRange}</h3>
+          <h3 className="text-[32px] xl:text-[36px] font-semibold tracking-tight text-white/90">{monthRange}</h3>
         </div>
-        <div className="grid grid-cols-7 gap-2 text-center text-base xl:text-lg text-gray-300 mb-2">
+        <div className="grid grid-cols-7 gap-2 text-center text-xl xl:text-xl text-gray-300 mb-2 font-bold">
           {wkLabels.map((w) => (<div key={w}>{w}</div>))}
         </div>
         <div className="grid grid-cols-7 gap-2 auto-rows-fr flex-1">
@@ -291,7 +291,7 @@ function MonthCalendarPanel({ tz, apiBase }) {
             const titles = eventsByDay[k] || [];
             return (
               <div key={i} className={`rounded-md border border-white/10 flex flex-col p-2 ${isToday(d) ? 'bg-white/10' : ''}`}>
-                <div className="text-sm text-white text-right">{d.getDate()}</div>
+                <div className="text-2xl text-white text-right">{d.getDate()}</div>
                 <div className="mt-1 space-y-1 overflow-hidden">
                   {titles.slice(0,3).map((t, idx) => {
                     const isObj = t && typeof t === 'object';
@@ -302,7 +302,7 @@ function MonthCalendarPanel({ tz, apiBase }) {
                     return (
                       <div
                         key={idx}
-                        className={`truncate text-sm xl:text-base ${isAll ? 'bg-white text-neutral-900 rounded px-1 font-medium' : 'text-gray-200'}`}
+                        className={`truncate text-base xl:text-xl ${isAll ? 'bg-white text-neutral-900 rounded px-1 font-medium' : 'text-gray-200'}`}
                       >
                         {label}
                       </div>
