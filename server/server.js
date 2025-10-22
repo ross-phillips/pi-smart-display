@@ -91,14 +91,14 @@ app.get("/api/meals", async (req, res) => {
         // Generate Monday-Sunday of current week instead of today+6 days
         const out = [];
         const now = new Date();
-        const monday = new Date(now);
+        const mondayForOutput = new Date(now);
         const dow = (now.getDay() + 6) % 7; // 0 = Monday
-        monday.setDate(now.getDate() - dow);
-        monday.setHours(0, 0, 0, 0);
+        mondayForOutput.setDate(now.getDate() - dow);
+        mondayForOutput.setHours(0, 0, 0, 0);
         
         for (let i=0;i<7;i++) {
-          const d = new Date(monday);
-          d.setDate(monday.getDate() + i);
+          const d = new Date(mondayForOutput);
+          d.setDate(mondayForOutput.getDate() + i);
           const k = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
           const event = perDay.get(k);
           console.log(`DEBUG: Day ${i}: ${k} -> ${event ? event.title : 'null'}`);
