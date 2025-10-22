@@ -204,11 +204,16 @@ function MealsPanel({ apiBase, tz }) {
   const [err, setErr] = useState(null);
   
   useEffect(() => {
+    console.log('MealsPanel: useEffect triggered');
     console.log('MealsPanel: Making API call to', apiBase);
     const webcal = 'webcal://p46-caldav.icloud.com/published/2/MTMyNjM0ODkwNDEzMjYzNKSpCj-NKjq9g19C5MKQfrSNZyeBCZv5-gFMIpBhNeKjZ7PbpGaJJCJkL0Dp886CKtCK1AatLOY-qQzVRklSaA4';
     const q = encodeURIComponent(webcal);
     const url = `${apiBase}/meals?u=${q}&tz=${encodeURIComponent(tz)}`;
     console.log('MealsPanel: Fetching URL:', url);
+    
+    // Add a visible debug message
+    setItems([{ day: '2025-10-21', title: 'DEBUG: About to fetch' }]);
+    
     fetch(url)
       .then(r => {
         console.log('MealsPanel: Response status:', r.status);
