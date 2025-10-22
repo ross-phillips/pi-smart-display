@@ -38,6 +38,9 @@ app.get("/api/meals", async (req, res) => {
     const windowEnd = new Date(windowStart.getTime() + 14 * 24 * 60 * 60 * 1000);
     const idxToWd = ["SU","MO","TU","WE","TH","FR","SA"];
 
+    console.log(`DEBUG: Window start: ${windowStart.toISOString()}, end: ${windowEnd.toISOString()}`);
+    console.log(`DEBUG: Current date: ${start.toISOString()}`);
+
     const expanded = [];
     for (const e of evts) {
       if (e.rrule && /FREQ=WEEKLY/.test(e.rrule)) {
@@ -52,12 +55,17 @@ app.get("/api/meals", async (req, res) => {
           expanded.push({ day: new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(occStart), title: e.title });
         }
       } else {
-        if (new Date(e.end||e.start) >= windowStart && new Date(e.start) < windowEnd) {
-          const day = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(e.start));
+        const eventStart = new Date(e.start);
+        const eventEnd = new Date(e.end || e.start);
+        console.log(`DEBUG: Event "${e.title}" start: ${eventStart.toISOString()}, end: ${eventEnd.toISOString()}`);
+        if (eventEnd >= windowStart && eventStart < windowEnd) {
+          const day = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(eventStart);
           expanded.push({ day, title: e.title });
+          console.log(`DEBUG: Added event "${e.title}" for day ${day}`);
         }
       }
     }
+    console.log(`DEBUG: Expanded events: ${expanded.length}`);
 
     // Pick first per day for next 7 days
     const toYmd = (d) => new Date(d).toISOString().slice(0,10);
