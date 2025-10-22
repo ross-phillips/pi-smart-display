@@ -235,11 +235,15 @@ function MealsPanel({ apiBase, tz }) {
   const monday = new Date(now);
   const dow = (now.getDay() + 6) % 7; // 0 = Monday
   monday.setDate(now.getDate() - dow);
+  console.log('DEBUG: Frontend looking for dates starting from:', fmtYmd.format(monday));
+  console.log('DEBUG: Available data keys:', Array.from(byDay.keys()));
   const ordered = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const key = fmtYmd.format(d);
-    return byDay.get(key) || { day: key, title: null };
+    const found = byDay.get(key);
+    console.log(`DEBUG: Looking for ${key}, found:`, found);
+    return found || { day: key, title: null };
   });
 
   return (
