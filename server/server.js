@@ -71,7 +71,10 @@ app.get("/api/meals", async (req, res) => {
     const toYmd = (d) => new Date(d).toISOString().slice(0,10);
     const perDay = new Map();
     for (const e of expanded.sort((a,b)=> a.day.localeCompare(b.day))) {
-      if (!perDay.has(e.day)) perDay.set(e.day, e);
+      // Convert the day format from MM/DD/YYYY to YYYY-MM-DD for consistent lookup
+      const [month, day, year] = e.day.split('/');
+      const isoDay = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      if (!perDay.has(isoDay)) perDay.set(isoDay, e);
     }
     console.log(`DEBUG: perDay map:`, Array.from(perDay.entries()).slice(0, 5));
     
