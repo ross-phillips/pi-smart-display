@@ -192,12 +192,12 @@ function toISO(v) {
     }
     if (/^\d{8}T\d{6}$/.test(v)) {
       const m = v.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/);
-      const d = new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
-      return isNaN(d) ? null : d.toISOString();
+      const d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]));
+      return d.toISOString();
     }
     if (/^\d{8}$/.test(v)) {
       const m = v.match(/^(\d{4})(\d{2})(\d{2})$/);
-      const d = new Date(+m[1], +m[2]-1, +m[3], 0, 0, 0);
+      const d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], 0, 0, 0));
       return isNaN(d) ? null : d.toISOString();
     }
     const afterColon = v.includes(":") ? v.split(":").pop() : v;
