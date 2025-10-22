@@ -9,7 +9,7 @@ import os
 
 # Configuration
 PIR_PIN = 17
-TIMEOUT = 300  # 1 minute
+TIMEOUT = 60  # 1 minute
 OFF_HOUR = 23  # 11 PM
 ON_HOUR = 7    # 7 AM
 LOG_FILE = '/home/ross/pi-smart-display/motion.log'
