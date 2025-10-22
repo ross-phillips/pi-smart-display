@@ -69,7 +69,7 @@ app.get("/api/meals", async (req, res) => {
         const eventStart = new Date(e.start);
         const eventEnd = new Date(e.end || e.start);
         console.log(`DEBUG: Event "${e.title}" start: ${eventStart.toISOString()}, end: ${eventEnd.toISOString()}`);
-        if (eventEnd >= windowStart && eventStart < windowEnd) {
+        if (eventEnd >= windowStart && eventStart <= windowEnd) {
           const day = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(eventStart);
           expanded.push({ day, title: e.title });
           console.log(`DEBUG: Added event "${e.title}" for day ${day}`);
