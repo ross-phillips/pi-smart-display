@@ -85,7 +85,7 @@ app.get("/api/meals", async (req, res) => {
       const k = toYmd(d);
       const event = perDay.get(k);
       console.log(`DEBUG: Day ${i}: ${k} -> ${event ? event.title : 'null'}`);
-      out.push(event || { day: k, title: null });
+      out.push(event ? { day: k, title: event.title } : { day: k, title: null });
     }
     console.log(`DEBUG: Final output:`, out);
 
