@@ -79,10 +79,10 @@ app.get("/api/meals", async (req, res) => {
     console.log(`DEBUG: Expanded events: ${expanded.length}`);
 
     // Pick first per day for next 7 days
-    const toYmd = (d) => new Date(d).toISOString().slice(0,10);
+    const toYmd = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(d));
     const perDay = new Map();
     for (const e of expanded.sort((a,b)=> a.day.localeCompare(b.day))) {
-      // Convert the day format to YYYY-MM-DD using toYmd
+      // Convert the day format to YYYY-MM-DD using timezone-aware formatting
       const isoDay = toYmd(new Date(e.day));
       if (!perDay.has(isoDay)) perDay.set(isoDay, e);
     }
