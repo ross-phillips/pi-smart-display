@@ -79,16 +79,7 @@ app.get("/api/meals", async (req, res) => {
     console.log(`DEBUG: Expanded events: ${expanded.length}`);
 
     // Pick first per day for next 7 days
-    const toYmd = (d) => {
-      const date = new Date(d);
-      // Convert to timezone-aware date by adjusting for timezone offset
-      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-      const targetTime = new Date(utc + (tz === 'Europe/London' ? 0 : 0) * 3600000); // Adjust for timezone
-      const year = targetTime.getFullYear();
-      const month = String(targetTime.getMonth() + 1).padStart(2, '0');
-      const day = String(targetTime.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
+    const toYmd = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(d));
     const perDay = new Map();
     for (const e of expanded.sort((a,b)=> a.day.localeCompare(b.day))) {
       // Convert the day format to YYYY-MM-DD using timezone-aware formatting
@@ -216,7 +207,7 @@ function toISO(v) {
     }
     if (/^\d{8}$/.test(v)) {
       const m = v.match(/^(\d{4})(\d{2})(\d{2})$/);
-      const d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], 0, 0, 0));
+      const d = new Date(+m[1], +m[2]-1, +m[3], 0, 0, 0);
       return isNaN(d) ? null : d.toISOString();
     }
     const afterColon = v.includes(":") ? v.split(":").pop() : v;
