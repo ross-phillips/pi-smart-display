@@ -273,11 +273,11 @@ function MonthCalendarPanel({ tz, apiBase }) {
     for (const event of binEvents) {
       const title = event.title || '';
       if (title.includes('Rubbish Bin Collection')) {
-        return <span className="text-green-500 text-lg">🗑️</span>; // Green bin
+        return <i className="fas fa-trash text-green-500 text-lg"></i>; // Green bin
       } else if (title.includes('Recycling Bin Collection')) {
-        return <span className="text-blue-500 text-lg">♻️</span>; // Blue bin
+        return <i className="fas fa-recycle text-blue-500 text-lg"></i>; // Blue bin
       } else if (title.includes('Garden Waste Bin Collection')) {
-        return <span className="text-amber-600 text-lg">🍂</span>; // Brown bin
+        return <i className="fas fa-leaf text-amber-600 text-lg"></i>; // Brown bin
       }
     }
     return null;
