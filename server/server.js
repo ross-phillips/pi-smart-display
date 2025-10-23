@@ -82,8 +82,8 @@ app.get("/api/meals", async (req, res) => {
     const toYmd = (d) => new Date(d).toISOString().slice(0,10);
     const perDay = new Map();
     for (const e of expanded.sort((a,b)=> a.day.localeCompare(b.day))) {
-      // The day format is already YYYY-MM-DD from Intl.DateTimeFormat('en-CA')
-      const isoDay = e.day;
+      // Convert the day format to YYYY-MM-DD using toYmd
+      const isoDay = toYmd(new Date(e.day));
       if (!perDay.has(isoDay)) perDay.set(isoDay, e);
     }
     console.log(`DEBUG: perDay map:`, Array.from(perDay.entries()).slice(0, 5));
