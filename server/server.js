@@ -127,7 +127,7 @@ app.use((req, _res, next) => {
   next(); 
 });
 
-const PORT = process.env.PORT || 8787;
+const PORT = process.env.PORT || 8788;
 
 // Resolve project root and dist path (server runs from server/)
 const __filename = fileURLToPath(import.meta.url);
