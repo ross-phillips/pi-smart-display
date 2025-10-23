@@ -204,26 +204,14 @@ function MealsPanel({ apiBase, tz }) {
   const [err, setErr] = useState(null);
   
   useEffect(() => {
-    console.log('MealsPanel: useEffect triggered');
-    console.log('MealsPanel: Making API call to', apiBase);
     const webcal = 'REMOVED_PRIVATE_CALENDAR_URL';
     const q = encodeURIComponent(webcal);
     const url = `${apiBase}/meals?u=${q}&tz=${encodeURIComponent(tz)}`;
-    console.log('MealsPanel: Fetching URL:', url);
     
     fetch(url)
-      .then(r => {
-        console.log('MealsPanel: Response status:', r.status);
-        return r.json();
-      })
-      .then(data => {
-        console.log('MealsPanel: Received data:', data);
-        setItems(data);
-      })
-      .catch(err => {
-        console.error('MealsPanel: Error:', err);
-        setErr(err);
-      });
+      .then(r => r.json())
+      .then(data => setItems(data))
+      .catch(err => setErr(err));
   }, [apiBase, tz]);
 
   if (err) return <div className={defaultStyle.card}>Meals error: {String(err.message || err)}</div>;
@@ -235,24 +223,17 @@ function MealsPanel({ apiBase, tz }) {
   const monday = new Date(now);
   const dow = (now.getDay() + 6) % 7; // 0 = Monday
   monday.setDate(now.getDate() - dow);
-  console.log('DEBUG: Frontend looking for dates starting from:', fmtYmd.format(monday));
-  console.log('DEBUG: Available data keys:', Array.from(byDay.keys()));
   const ordered = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const key = fmtYmd.format(d);
     const found = byDay.get(key);
-    console.log(`DEBUG: Looking for ${key}, found:`, found);
     return found || { day: key, title: null };
   });
 
   return (
     <div className={defaultStyle.card}>
       <h3 className="text-[32px] xl:text-[36px] font-semibold tracking-tight mb-3 text-white/90 text-center">Meals Planner</h3>
-      <div className="text-green-400 text-lg mb-4">✅ MealsPanel is rendering!</div>
-      <div className="text-yellow-400 text-sm mb-2">API Base: {apiBase}</div>
-      <div className="text-yellow-400 text-sm mb-2">Timezone: {tz}</div>
-      <div className="text-yellow-400 text-sm mb-2">Items count: {items.length}</div>
       <ul className="space-y-2">
         {ordered.map((e, i) => (
           <li key={i} className="flex items-center justify-between text-xl xl:text-xl">
@@ -402,7 +383,6 @@ export default function SmartDisplay({
             <WeatherCard apiBase={apiBase} location={location} />
           </div>
           <div className="xl:w-full">
-            <div className="text-red-500 text-lg mb-2">DEBUG: About to render MealsPanel</div>
             <MealsPanel apiBase={apiBase} tz={location.tz} />
           </div>
         </div>
