@@ -100,6 +100,7 @@ app.get("/api/meals", async (req, res) => {
           const d = new Date(mondayForOutput);
           d.setDate(mondayForOutput.getDate() + i);
           const k = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+          console.log(`DEBUG: Date object: ${d.toISOString()}, Formatted: ${k}`);
           const event = perDay.get(k);
           console.log(`DEBUG: Day ${i}: ${k} -> ${event ? event.title : 'null'}`);
           out.push(event ? { day: k, title: event.title } : { day: k, title: null });
