@@ -324,6 +324,9 @@ app.get("/api/caldays", async (req, res) => {
 
       const out = allKeys.map((k) => {
         const dayEvents = days.get(k) || [];
+        if (k === '2025-10-29') {
+          console.log(`DEBUG: Events for ${k}:`, dayEvents);
+        }
         const sorted = dayEvents.sort((a, b) => {
           if (a.allDay && !b.allDay) return -1;
           if (!a.allDay && b.allDay) return 1;
@@ -334,6 +337,9 @@ app.get("/api/caldays", async (req, res) => {
           }
           return 0;
         });
+        if (k === '2025-10-29') {
+          console.log(`DEBUG: Sorted events for ${k}:`, sorted);
+        }
         return { day: k, titles: sorted };
       });
       
