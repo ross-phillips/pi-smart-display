@@ -513,6 +513,9 @@ app.get("/api/caldays", async (req, res) => {
       d0.setHours(0,0,0,0);
       const endDay = new Date(Math.min(ee, windowEnd));
       endDay.setHours(0,0,0,0);
+      if (e.title && e.title.includes('Sports Massage')) {
+        console.log(`DEBUG: Remote URL - Sports Massage event passed date range check - d0: ${d0.toISOString()}, endDay: ${endDay.toISOString()}`);
+      }
       for (let d = new Date(d0); d <= endDay; d.setDate(d.getDate()+1)) {
         const k = toYmd(d);
         const arr = days.get(k) || [];
@@ -527,7 +530,10 @@ app.get("/api/caldays", async (req, res) => {
             }
           }
         }
-        if (arr.length < 3) arr.push({ title: e.title, allDay: !!e.allDay, time });
+        arr.push({ title: e.title, allDay: !!e.allDay, time });
+        if (e.title && e.title.includes('Sports Massage')) {
+          console.log(`DEBUG: Remote URL - Sports Massage event added to day ${k} with time ${time}`);
+        }
         days.set(k, arr);
       }
     }
