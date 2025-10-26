@@ -244,6 +244,21 @@ async function fetchText(url) {
 
 // Calendar endpoints removed per request
 // Lightweight per-day calendar aggregation for a single ICS
+
+// Helper function to detect if we're in BST (British Summer Time)
+function isBST(date = new Date()) {
+  const year = date.getFullYear();
+  // BST starts last Sunday in March, ends last Sunday in October
+  const marchLastSunday = new Date(year, 2, 31 - new Date(year, 2, 31).getDay());
+  const octoberLastSunday = new Date(year, 9, 31 - new Date(year, 9, 31).getDay());
+  return date >= marchLastSunday && date < octoberLastSunday;
+}
+
+// Get proper timezone offset for UK
+function getUKTimezoneOffset() {
+  return isBST() ? '+01:00' : '+00:00'; // BST is UTC+1, GMT is UTC+0
+}
+
 // Clear cache endpoint
 app.post("/api/clear-cache", (req, res) => {
   cache.clear();
@@ -308,6 +323,9 @@ app.get("/api/caldays", async (req, res) => {
         }
 
         if (ee < windowStart || es > windowEnd) {
+          if (e.title && e.title.includes('Sports Massage')) {
+            console.log(`DEBUG: Sports Massage event filtered out - start: ${es.toISOString()}, end: ${ee.toISOString()}, window: ${windowStart.toISOString()} to ${windowEnd.toISOString()}`);
+          }
           console.log(`DEBUG: Filtering out event "${e.title}" - start: ${es.toISOString()}, end: ${ee.toISOString()}, window: ${windowStart.toISOString()} to ${windowEnd.toISOString()}`);
           continue;
         }
@@ -330,6 +348,9 @@ app.get("/api/caldays", async (req, res) => {
                 time = null;
               }
             }
+          }
+          if (e.title && e.title.includes('Sports Massage')) {
+            console.log(`DEBUG: Adding Sports Massage event to day ${k} with time ${time}`);
           }
           arr.push({ title: e.title, allDay: !!e.allDay, time });
           days.set(k, arr);
