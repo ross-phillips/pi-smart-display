@@ -409,7 +409,9 @@ app.get("/api/caldays", async (req, res) => {
     const c = getCache(key); if (c) return res.json(c);
 
     const txt = await fetchText(icsUrl);
+    console.log(`DEBUG: caldays fetched text length: ${txt.length}`);
     const events = parseICS(txt, icsUrl);
+    console.log(`DEBUG: caldays parsed ${events.length} events`);
 
     const windowStart = new Date(`${start}T00:00:00Z`);
     const windowEnd = new Date(`${end}T23:59:59Z`);
