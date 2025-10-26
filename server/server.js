@@ -307,7 +307,7 @@ app.get("/api/caldays", async (req, res) => {
               }
             }
           }
-          if (arr.length < 3) arr.push({ title: e.title, allDay: !!e.allDay, time });
+          if (arr.length < 5) arr.push({ title: e.title, allDay: !!e.allDay, time });
           days.set(k, arr);
         }
       }
@@ -415,7 +415,7 @@ app.get("/api/caldays", async (req, res) => {
               time = null;
             }
           }
-          if (arr.length < 3) arr.push({ title: e.title, allDay: !!e.allDay, time });
+          if (arr.length < 5) arr.push({ title: e.title, allDay: !!e.allDay, time });
           days.set(key, arr);
         }
         continue;
