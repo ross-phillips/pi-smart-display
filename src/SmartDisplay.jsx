@@ -25,11 +25,12 @@ const defaultStyle = {
 };
 
 function useRefresh(ms) {
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), ms);
     return () => clearInterval(id);
   }, [ms]);
+  return tick;
 }
 
 function fmtDate(d, tz) {
@@ -101,14 +102,14 @@ function degToCompass(deg) {
   return dirs[idx];
 }
 
-function WeatherCard({ apiBase, location }) {
+function WeatherCard({ apiBase, location, refreshTick }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
 
   useEffect(() => {
     const url = `${apiBase}/weather?lat=${location.lat}&lon=${location.lon}`;
     fetch(url).then(r => r.json()).then(setData).catch(setErr);
-  }, [apiBase, location.lat, location.lon]);
+  }, [apiBase, location.lat, location.lon, refreshTick]);
 
   if (err) return <div className={defaultStyle.card}>Weather error: {String(err)}</div>;
   if (!data) return <div className={defaultStyle.card}>Loading weather…</div>;
@@ -167,7 +168,7 @@ function WeatherCard({ apiBase, location }) {
 
 // Meals card removed
 
-function NewsCard({ apiBase, feeds }) {
+function NewsCard({ apiBase, feeds, refreshTick }) {
   const [items, setItems] = useState([]);
   const [err, setErr] = useState(null);
 
@@ -177,7 +178,7 @@ function NewsCard({ apiBase, feeds }) {
       .then(r => r.json())
       .then(setItems)
       .catch(setErr);
-  }, [apiBase, feeds]);
+  }, [apiBase, feeds, refreshTick]);
 
   if (err) return <div className={defaultStyle.card}>News error: {String(err)}</div>;
   if (!items?.length) return <div className={defaultStyle.card}>Loading news…</div>;
@@ -199,7 +200,7 @@ function NewsCard({ apiBase, feeds }) {
 
 // Calendars card removed
 
-function MealsPanel({ apiBase, tz }) {
+function MealsPanel({ apiBase, tz, refreshTick }) {
   const [items, setItems] = useState([]);
   const [err, setErr] = useState(null);
   
@@ -212,7 +213,7 @@ function MealsPanel({ apiBase, tz }) {
       .then(r => r.json())
       .then(data => setItems(data))
       .catch(err => setErr(err));
-  }, [apiBase, tz]);
+  }, [apiBase, tz, refreshTick]);
 
   if (err) return <div className={defaultStyle.card}>Meals error: {String(err.message || err)}</div>;
   
@@ -246,7 +247,7 @@ function MealsPanel({ apiBase, tz }) {
   );
 }
 
-function MonthCalendarPanel({ tz, apiBase }) {
+function MonthCalendarPanel({ tz, apiBase, refreshTick }) {
   const now = new Date();
   // Find Monday of current week - memoize to prevent constant re-renders
   const monday = useMemo(() => {
@@ -314,7 +315,7 @@ function MonthCalendarPanel({ tz, apiBase }) {
         setBinEventsByDay(map);
       })
       .catch(()=>{});
-  }, [apiBase, tz, monday]);
+  }, [apiBase, tz, monday, refreshTick]);
 
   return (
     <div className="fixed left-7 bottom-7 w-[83vw] h-[82vh]">
@@ -370,7 +371,7 @@ export default function SmartDisplay({
   refreshMs = 10 * 60 * 1000,
   apiBase = "/api",
 }) {
-  useRefresh(refreshMs);
+  const refreshTick = useRefresh(refreshMs);
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-neutral-900 to-neutral-950 text-white px-6 py-6 xl:px-10 xl:py-10">
       <main className={`${defaultStyle.grid} ${defaultStyle.gridCols}`}>
@@ -380,14 +381,14 @@ export default function SmartDisplay({
         </div>
         <div className="space-y-6 xl:col-start-2 xl:justify-self-end w-full">
           <div className="xl:w-full">
-            <WeatherCard apiBase={apiBase} location={location} />
+            <WeatherCard apiBase={apiBase} location={location} refreshTick={refreshTick} />
           </div>
           <div className="xl:w-full">
-            <MealsPanel apiBase={apiBase} tz={location.tz} />
+            <MealsPanel apiBase={apiBase} tz={location.tz} refreshTick={refreshTick} />
           </div>
         </div>
       </main>
-      <MonthCalendarPanel tz={location.tz} apiBase={apiBase} />
+      <MonthCalendarPanel tz={location.tz} apiBase={apiBase} refreshTick={refreshTick} />
     </div>
   );
 }
