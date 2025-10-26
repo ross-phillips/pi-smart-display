@@ -301,6 +301,8 @@ app.get("/api/caldays", async (req, res) => {
     const end = String(req.query.end || "");   // YYYY-MM-DD
     if (!icsUrl || !start || !end) return res.status(400).json({ error: "u,start,end required" });
     
+    console.log(`DEBUG: caldays processing - icsUrl: ${icsUrl}, start: ${start}, end: ${end}`);
+    
     // Handle local file path
     if (icsUrl.startsWith('/home/')) {
       const fs = await import('fs');
@@ -401,6 +403,7 @@ app.get("/api/caldays", async (req, res) => {
     }
     
     icsUrl = decodeURIComponent(icsUrl).replace(/^webcal:\/\//i, 'https://');
+    console.log(`DEBUG: caldays remote URL processing - converted URL: ${icsUrl}`);
 
     const key = `caldays:v1:${icsUrl}:${tz}:${start}:${end}`;
     const c = getCache(key); if (c) return res.json(c);
