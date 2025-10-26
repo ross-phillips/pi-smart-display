@@ -294,6 +294,7 @@ app.get("/api/debug-date-range", async (req, res) => {
 
 app.get("/api/caldays", async (req, res) => {
   try {
+    console.log(`DEBUG: caldays endpoint called with URL: ${req.query.u}`);
     let icsUrl = String(req.query.u || "");
     const tz = String(req.query.tz || "Europe/London");
     const start = String(req.query.start || ""); // YYYY-MM-DD
