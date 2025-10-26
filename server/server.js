@@ -40,6 +40,7 @@ app.get("/api/meals", async (req, res) => {
     console.log(`DEBUG: Parsed ${evts.length} events from ICS`);
     console.log(`DEBUG: First few events:`, evts.slice(0, 3));
     console.log(`DEBUG: Looking for Sports Massage event:`, evts.filter(e => e.title && e.title.includes('Sports Massage')));
+    console.log(`DEBUG: All events with 'Massage' in title:`, evts.filter(e => e.title && e.title.includes('Massage')));
     for (const e of evts) { e.start = toISO(e.start); e.end = toISO(e.end); }
 
         const start = new Date();
