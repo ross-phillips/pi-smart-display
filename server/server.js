@@ -502,7 +502,9 @@ app.get("/api/caldays", async (req, res) => {
             try {
               if (e.title && e.title.includes('Ringtons')) {
                 // For Ringtons event, treat UTC time as local time (no timezone conversion)
-                time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }).format(es);
+                const hours = es.getUTCHours().toString().padStart(2, '0');
+                const minutes = es.getUTCMinutes().toString().padStart(2, '0');
+                time = `${hours}:${minutes}`;
               } else {
                 time = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(es);
               }
