@@ -41,6 +41,7 @@ app.get("/api/meals", async (req, res) => {
     console.log(`DEBUG: First few events:`, evts.slice(0, 3));
     console.log(`DEBUG: Looking for Sports Massage event:`, evts.filter(e => e.title && e.title.includes('Sports Massage')));
     console.log(`DEBUG: All events with 'Massage' in title:`, evts.filter(e => e.title && e.title.includes('Massage')));
+    console.log(`DEBUG: All events on 2025-10-29:`, evts.filter(e => e.start && e.start.includes('2025-10-29')));
     for (const e of evts) { e.start = toISO(e.start); e.end = toISO(e.end); }
 
         const start = new Date();
