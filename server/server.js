@@ -715,7 +715,7 @@ app.get("/api/debug-events", async (req, res) => {
     icsUrl = decodeURIComponent(icsUrl).replace(/^webcal:\/\//i, 'https://');
     const txt = await fetchText(icsUrl);
     const events = parseICS(txt, icsUrl);
-    const filtered = events.filter(e => e.title && (e.title.includes('Sports Massage') || (e.start && e.start.includes('20251029'))));
+    const filtered = events.filter(e => e.title && (e.title.includes('Sports Massage') || e.title.includes('Ringtons') || (e.start && e.start.includes('20251029'))));
     res.json({ total: events.length, filtered });
   } catch (e) {
     res.status(500).json({ error: String(e) });
