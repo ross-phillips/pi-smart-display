@@ -257,8 +257,8 @@ app.get("/api/caldays", async (req, res) => {
       const txt = fs.readFileSync(icsUrl, 'utf8');
       const events = parseICS(txt, icsUrl);
       
-      const windowStart = new Date(`${start}T00:00:00`);
-      const windowEnd = new Date(`${end}T23:59:59`);
+      const windowStart = new Date(`${start}T00:00:00Z`);
+      const windowEnd = new Date(`${end}T23:59:59Z`);
       const pad = (n) => String(n).padStart(2, '0');
       const toYmd = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
