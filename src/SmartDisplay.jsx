@@ -339,7 +339,7 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick }) {
                   <div className="text-2xl text-white text-right">{d.getDate()}</div>
                 </div>
                 <div className="mt-1 space-y-1 overflow-hidden">
-                  {titles.slice(0,3).map((t, idx) => {
+                  {titles.map((t, idx) => {
                     const isObj = t && typeof t === 'object';
                     const titleText = isObj ? (t.title ?? '') : String(t ?? '');
                     const isAll = isObj && !!t.allDay;
