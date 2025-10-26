@@ -474,6 +474,9 @@ app.get("/api/caldays", async (req, res) => {
 
       // Expand weekly RRULEs
       if (e.rrule && /FREQ=WEEKLY/i.test(e.rrule)) {
+        if (e.title && e.title.includes('Ringtons')) {
+          console.log(`DEBUG: Processing recurring Ringtons event - start: ${es.toISOString()}, rrule: ${e.rrule}`);
+        }
         const r = parseRrule(e.rrule);
         const exset = exdateSet(e);
         const bydays = r.byday.length ? r.byday : [idxToWd[es.getDay()]];
@@ -497,6 +500,9 @@ app.get("/api/caldays", async (req, res) => {
             }
           }
           arr.push({ title: e.title, allDay: !!e.allDay, time });
+          if (e.title && e.title.includes('Ringtons')) {
+            console.log(`DEBUG: Adding recurring Ringtons event to day ${key} with time ${time}`);
+          }
           days.set(key, arr);
         }
         continue;
