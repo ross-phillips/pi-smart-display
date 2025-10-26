@@ -265,15 +265,28 @@ app.post("/api/clear-cache", (req, res) => {
   res.json({ message: "Cache cleared" });
 });
 
-// Debug endpoint to see raw parsed events
-app.get("/api/debug-events", async (req, res) => {
+// Debug endpoint to test date range filtering
+app.get("/api/debug-date-range", async (req, res) => {
   try {
-    let icsUrl = String(req.query.u || "");
-    icsUrl = decodeURIComponent(icsUrl).replace(/^webcal:\/\//i, 'https://');
-    const txt = await fetchText(icsUrl);
-    const events = parseICS(txt, icsUrl);
-    const filtered = events.filter(e => e.title && (e.title.includes('Sports Massage') || (e.start && e.start.includes('20251029'))));
-    res.json({ total: events.length, filtered });
+    const start = "2025-10-29";
+    const end = "2025-10-29";
+    const windowStart = new Date(`${start}T00:00:00Z`);
+    const windowEnd = new Date(`${end}T23:59:59Z`);
+    
+    const sportsMassageStart = new Date("2025-10-29T10:00:00.000Z");
+    const sportsMassageEnd = new Date("2025-10-29T10:45:00.000Z");
+    
+    const isInRange = !(sportsMassageEnd < windowStart || sportsMassageStart > windowEnd);
+    
+    res.json({
+      windowStart: windowStart.toISOString(),
+      windowEnd: windowEnd.toISOString(),
+      sportsMassageStart: sportsMassageStart.toISOString(),
+      sportsMassageEnd: sportsMassageEnd.toISOString(),
+      isInRange,
+      currentTime: new Date().toISOString(),
+      isBST: isBST()
+    });
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
