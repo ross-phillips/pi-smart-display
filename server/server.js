@@ -171,6 +171,7 @@ const getCache = (k) => {
 };
 
 function parseICS(text, label = "Calendar") {
+  console.log(`DEBUG: parseICS called with label: ${label}`);
   const lines = text.split(/\r?\n/);
   const events = [];
   let cur = null;
@@ -207,6 +208,8 @@ function parseICS(text, label = "Calendar") {
     if (!s) continue;
     out.push({ ...e, start: s, end: en });
   }
+  console.log(`DEBUG: parseICS returning ${out.length} events`);
+  console.log(`DEBUG: parseICS Sports Massage events:`, out.filter(e => e.title && e.title.includes('Sports Massage')));
   return out;
 }
 
