@@ -271,6 +271,9 @@ app.get("/api/caldays", async (req, res) => {
       }
 
       for (const e of events) {
+        if (e.title && e.title.includes('Sports Massage')) {
+          console.log(`DEBUG: Processing Sports Massage event - start: ${e.start}, end: ${e.end}, title: ${e.title}`);
+        }
         const es = new Date(e.start);
         let ee = new Date(e.end || e.start);
         
