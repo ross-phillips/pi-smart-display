@@ -24,8 +24,16 @@ app.get("/api/meals", async (req, res) => {
       else if (line.startsWith("END:VEVENT")) { if (cur) { evts.push(cur); cur = null; } }
       else if (cur) {
         if (line.startsWith("SUMMARY:")) cur.title = line.slice(8).trim();
-        if (line.startsWith("DTSTART")) { const [, v] = line.split(":"); cur.start = v?.length===8? `${v}T000000` : v; }
-        if (line.startsWith("DTEND")) { const [, v] = line.split(":"); cur.end = v?.length===8? `${v}T000000` : v; }
+        if (line.startsWith("DTSTART")) { 
+          const colonIndex = line.indexOf(":");
+          const v = colonIndex >= 0 ? line.slice(colonIndex + 1) : "";
+          cur.start = v?.length===8? `${v}T000000` : v; 
+        }
+        if (line.startsWith("DTEND")) { 
+          const colonIndex = line.indexOf(":");
+          const v = colonIndex >= 0 ? line.slice(colonIndex + 1) : "";
+          cur.end = v?.length===8? `${v}T000000` : v; 
+        }
         if (line.startsWith("RRULE:")) cur.rrule = line.slice(6).trim();
       }
     }
