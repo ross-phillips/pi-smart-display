@@ -453,6 +453,9 @@ app.get("/api/caldays", async (req, res) => {
     };
 
     for (const e of events) {
+      if (e.title && e.title.includes('Sports Massage')) {
+        console.log(`DEBUG: Remote URL processing Sports Massage event - start: ${e.start}, end: ${e.end}, title: ${e.title}`);
+      }
       const es = new Date(e.start);
       let ee = new Date(e.end || e.start);
       
@@ -500,7 +503,12 @@ app.get("/api/caldays", async (req, res) => {
       }
 
       // Non-recurring or non-weekly
-      if (ee < windowStart || es > windowEnd) continue;
+      if (ee < windowStart || es > windowEnd) {
+        if (e.title && e.title.includes('Sports Massage')) {
+          console.log(`DEBUG: Remote URL - Sports Massage event filtered out - start: ${es.toISOString()}, end: ${ee.toISOString()}, window: ${windowStart.toISOString()} to ${windowEnd.toISOString()}`);
+        }
+        continue;
+      }
       const d0 = new Date(Math.max(es, windowStart));
       d0.setHours(0,0,0,0);
       const endDay = new Date(Math.min(ee, windowEnd));
