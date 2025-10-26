@@ -500,7 +500,12 @@ app.get("/api/caldays", async (req, res) => {
           if (!e.allDay) {
             // For timed recurring events, use the original start time
             try {
-              time = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(es);
+              if (e.title && e.title.includes('Ringtons')) {
+                // For Ringtons event, treat UTC time as local time (no timezone conversion)
+                time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }).format(es);
+              } else {
+                time = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(es);
+              }
             } catch {
               time = null;
             }
