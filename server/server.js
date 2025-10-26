@@ -282,7 +282,10 @@ app.get("/api/caldays", async (req, res) => {
           }
         }
 
-        if (ee < windowStart || es > windowEnd) continue;
+        if (ee < windowStart || es > windowEnd) {
+          console.log(`DEBUG: Filtering out event "${e.title}" - start: ${es.toISOString()}, end: ${ee.toISOString()}, window: ${windowStart.toISOString()} to ${windowEnd.toISOString()}`);
+          continue;
+        }
 
         const d0 = new Date(Math.max(es.getTime(), windowStart.getTime()));
         d0.setHours(0,0,0,0);
