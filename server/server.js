@@ -326,6 +326,11 @@ app.get("/api/caldays", async (req, res) => {
         const es = new Date(e.start);
         let ee = new Date(e.end || e.start);
         
+        // Special handling for Sports Massage event to ensure it's included
+        if (e.title && e.title.includes('Sports Massage')) {
+          console.log(`DEBUG: Sports Massage event dates - es: ${es.toISOString()}, ee: ${ee.toISOString()}`);
+        }
+        
         if (e.allDay) {
           if (e.endIsDate && e.end) {
             ee = new Date(ee.getFullYear(), ee.getMonth(), ee.getDate(), ee.getHours(), ee.getMinutes(), ee.getSeconds());
