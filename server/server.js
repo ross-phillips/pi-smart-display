@@ -244,6 +244,12 @@ async function fetchText(url) {
 
 // Calendar endpoints removed per request
 // Lightweight per-day calendar aggregation for a single ICS
+// Clear cache endpoint
+app.post("/api/clear-cache", (req, res) => {
+  cache.clear();
+  res.json({ message: "Cache cleared" });
+});
+
 app.get("/api/caldays", async (req, res) => {
   try {
     let icsUrl = String(req.query.u || "");
@@ -311,7 +317,7 @@ app.get("/api/caldays", async (req, res) => {
               }
             }
           }
-          if (arr.length < 5) arr.push({ title: e.title, allDay: !!e.allDay, time });
+          arr.push({ title: e.title, allDay: !!e.allDay, time });
           days.set(k, arr);
         }
       }
@@ -419,7 +425,7 @@ app.get("/api/caldays", async (req, res) => {
               time = null;
             }
           }
-          if (arr.length < 5) arr.push({ title: e.title, allDay: !!e.allDay, time });
+          arr.push({ title: e.title, allDay: !!e.allDay, time });
           days.set(key, arr);
         }
         continue;
