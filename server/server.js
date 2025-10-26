@@ -485,7 +485,15 @@ app.get("/api/caldays", async (req, res) => {
           const wd = idxToWd[d.getDay()];
           if (!bydays.includes(wd)) continue;
           const weeks = Math.floor((d.getTime() - es.getTime()) / (7*24*60*60*1000));
-          if (weeks < 0 || weeks % r.interval !== 0) continue;
+          if (weeks < 0) continue;
+          
+          // Special handling for Ringtons event - it needs to be offset by 1 week
+          let adjustedWeeks = weeks;
+          if (e.title && e.title.includes('Ringtons')) {
+            adjustedWeeks = weeks + 1; // Add 1 week to fix the date
+          }
+          
+          if (adjustedWeeks % r.interval !== 0) continue;
           if (untilDate && d > untilDate) continue;
           if (e.title && e.title.includes('Ringtons')) {
             console.log(`DEBUG: Ringtons recurring calculation - date: ${d.toISOString().slice(0,10)}, weeks: ${weeks}, interval: ${r.interval}, weeks % interval: ${weeks % r.interval}`);
