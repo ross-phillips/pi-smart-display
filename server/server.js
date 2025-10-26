@@ -486,6 +486,8 @@ app.get("/api/caldays", async (req, res) => {
           if (!bydays.includes(wd)) continue;
           const weeks = Math.floor((d.getTime() - es.getTime()) / (7*24*60*60*1000));
           if (weeks < 0 || weeks % r.interval !== 0) continue;
+          // Skip the start week (week 0) for recurring events
+          if (weeks === 0) continue;
           if (untilDate && d > untilDate) continue;
           if (e.title && e.title.includes('Ringtons')) {
             console.log(`DEBUG: Ringtons recurring calculation - date: ${d.toISOString().slice(0,10)}, weeks: ${weeks}, interval: ${r.interval}, weeks % interval: ${weeks % r.interval}`);
