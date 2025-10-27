@@ -22,6 +22,12 @@ chromium-browser \
   --disable-extensions \
   --disable-sync \
   --disable-web-security \
+  --disable-background-timer-throttling \
+  --disable-backgrounding-occluded-windows \
+  --disable-renderer-backgrounding \
+  --disable-features=TranslateUI,VizDisplayCompositor \
+  --memory-pressure-off \
+  --max_old_space_size=2048 \
   --user-data-dir=/tmp/chrome-kiosk-minimal \
   http://localhost:8787
 

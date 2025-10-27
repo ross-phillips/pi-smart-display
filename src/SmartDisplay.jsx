@@ -368,7 +368,7 @@ export default function SmartDisplay({
   calendars = [],
   feeds = [],
   location = { lat: 51.5072, lon: -0.1276, tz: "Europe/London" },
-  refreshMs = 10 * 60 * 1000,
+  refreshMs = 15 * 60 * 1000, // 15 minutes instead of 10
   apiBase = "/api",
 }) {
   const refreshTick = useRefresh(refreshMs);
