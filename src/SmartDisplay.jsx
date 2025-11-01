@@ -107,8 +107,17 @@ function WeatherCard({ apiBase, location, refreshTick }) {
   const [err, setErr] = useState(null);
 
   useEffect(() => {
+    const abortController = new AbortController();
     const url = `${apiBase}/weather?lat=${location.lat}&lon=${location.lon}`;
-    fetch(url).then(r => r.json()).then(setData).catch(setErr);
+    fetch(url, { signal: abortController.signal })
+      .then(r => r.json())
+      .then(setData)
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          setErr(err);
+        }
+      });
+    return () => abortController.abort();
   }, [apiBase, location.lat, location.lon, refreshTick]);
 
   if (err) return <div className={defaultStyle.card}>Weather error: {String(err)}</div>;
@@ -173,11 +182,17 @@ function NewsCard({ apiBase, feeds, refreshTick }) {
   const [err, setErr] = useState(null);
 
   useEffect(() => {
+    const abortController = new AbortController();
     const urls = feeds.map(f => encodeURIComponent(f.url)).join("&u=");
-    fetch(`${apiBase}/news?u=${urls}`)
+    fetch(`${apiBase}/news?u=${urls}`, { signal: abortController.signal })
       .then(r => r.json())
       .then(setItems)
-      .catch(setErr);
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          setErr(err);
+        }
+      });
+    return () => abortController.abort();
   }, [apiBase, feeds, refreshTick]);
 
   if (err) return <div className={defaultStyle.card}>News error: {String(err)}</div>;
@@ -205,14 +220,20 @@ function MealsPanel({ apiBase, tz, refreshTick }) {
   const [err, setErr] = useState(null);
   
   useEffect(() => {
+    const abortController = new AbortController();
     const webcal = 'REMOVED_PRIVATE_CALENDAR_URL';
     const q = encodeURIComponent(webcal);
     const url = `${apiBase}/meals?u=${q}&tz=${encodeURIComponent(tz)}`;
     
-    fetch(url)
+    fetch(url, { signal: abortController.signal })
       .then(r => r.json())
       .then(data => setItems(data))
-      .catch(err => setErr(err));
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          setErr(err);
+        }
+      });
+    return () => abortController.abort();
   }, [apiBase, tz, refreshTick]);
 
   if (err) return <div className={defaultStyle.card}>Meals error: {String(err.message || err)}</div>;
@@ -288,6 +309,7 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick }) {
   const [binEventsByDay, setBinEventsByDay] = useState({});
   
   useEffect(() => {
+    const abortController = new AbortController();
     const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
     const startStr = fmt.format(days[0]);
     const endStr = fmt.format(days[27]);
@@ -295,26 +317,36 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick }) {
     // Fetch main calendar
     const webcal = 'webcal://p46-caldav.icloud.com/published/2/MTMyNjM0ODkwNDEzMjYzNKSpCj-NKjq9g19C5MKQfrTyx9HprnIe03QgHJf3jRCWM8dJ3FjG3_WV2YGQtexKoQIE0pBoM0siWxpoojNJd5U';
     const q = encodeURIComponent(webcal);
-    fetch(`${apiBase}/caldays?u=${q}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`)
+    fetch(`${apiBase}/caldays?u=${q}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
       .then(r=>r.json())
       .then(arr => {
         const map = {};
         for (const it of arr) map[it.day] = it.titles || [];
         setEventsByDay(map);
       })
-      .catch(()=>{});
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error('Calendar fetch error:', err);
+        }
+      });
       
     // Fetch bin collection calendar
     const binPath = '/home/ross/bin_collection.ics';
     const binQ = encodeURIComponent(binPath);
-    fetch(`${apiBase}/caldays?u=${binQ}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`)
+    fetch(`${apiBase}/caldays?u=${binQ}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
       .then(r=>r.json())
       .then(arr => {
         const map = {};
         for (const it of arr) map[it.day] = it.titles || [];
         setBinEventsByDay(map);
       })
-      .catch(()=>{});
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error('Bin collection fetch error:', err);
+        }
+      });
+      
+    return () => abortController.abort();
   }, [apiBase, tz, monday, refreshTick]);
 
   return (
@@ -372,6 +404,45 @@ export default function SmartDisplay({
   apiBase = "/api",
 }) {
   const refreshTick = useRefresh(refreshMs);
+  
+  // Add periodic full page reload to prevent memory issues
+  useEffect(() => {
+    // Reload the page every 2 hours (8 refreshes at 15min intervals)
+    const fullReloadInterval = 2 * 60 * 60 * 1000; // 2 hours
+    const reloadTimer = setTimeout(() => {
+      window.location.reload();
+    }, fullReloadInterval);
+    
+    return () => clearTimeout(reloadTimer);
+  }, []);
+  
+  // Add error boundary with recovery
+  useEffect(() => {
+    const handleError = (event) => {
+      console.error('Global error:', event.error);
+      // Reload after a short delay if there's a critical error
+      setTimeout(() => {
+        window.location.reload();
+      }, 5000);
+    };
+    
+    // Detect white screen - check if main content is missing or empty
+    const whiteScreenChecker = setInterval(() => {
+      const main = document.querySelector('main');
+      const hasContent = main && main.children.length > 0 && main.textContent.trim().length > 0;
+      // If we have a body but no main content, assume white screen
+      if (document.body && !hasContent) {
+        console.log('White screen detected (no content), reloading...');
+        window.location.reload();
+      }
+    }, 60000); // Check every 60 seconds
+    
+    window.addEventListener('error', handleError);
+    return () => {
+      window.removeEventListener('error', handleError);
+      clearInterval(whiteScreenChecker);
+    };
+  }, []);
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-neutral-900 to-neutral-950 text-white px-6 py-6 xl:px-10 xl:py-10">
       <main className={`${defaultStyle.grid} ${defaultStyle.gridCols}`}>
