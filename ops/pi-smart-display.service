@@ -1,0 +1,17 @@
+[Unit]
+Description=Pi Smart Display Backend
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/opt/pi-smart-display/ops/env.sh
+WorkingDirectory=${PI_DISPLAY_HOME}
+ExecStart=/usr/bin/node ${PI_DISPLAY_HOME}/backend/server/server.js
+Restart=always
+RestartSec=5
+User=${PI_DISPLAY_USER}
+Environment=NODE_ENV=production
+Environment=DATA_DIR=${PI_DISPLAY_HOME}/data
+
+[Install]
+WantedBy=multi-user.target

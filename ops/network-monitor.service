@@ -1,0 +1,17 @@
+[Unit]
+Description=Network Connectivity Monitor
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/opt/pi-smart-display/ops/env.sh
+ExecStart=/usr/bin/python3 ${PI_DISPLAY_HOME}/ops/network-monitor.py
+WorkingDirectory=${PI_DISPLAY_HOME}
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+RestartSec=10
+User=${PI_DISPLAY_USER}
+
+[Install]
+WantedBy=multi-user.target

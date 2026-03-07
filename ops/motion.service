@@ -1,0 +1,15 @@
+[Unit]
+Description=PIR Motion Detection for Smart Display
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/opt/pi-smart-display/ops/env.sh
+User=${PI_DISPLAY_USER}
+WorkingDirectory=${PI_DISPLAY_HOME}
+ExecStart=/usr/bin/python3 ${PI_DISPLAY_HOME}/ops/motion-detection.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

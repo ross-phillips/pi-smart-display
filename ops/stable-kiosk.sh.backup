@@ -1,0 +1,95 @@
+#!/bin/bash
+# Ultra-stable kiosk browser configuration
+
+echo "Starting ultra-stable kiosk browser..."
+
+# Kill any existing browsers
+pkill -f chromium
+sleep 2
+
+# Set environment variables
+export DISPLAY=:0
+export XDG_RUNTIME_DIR=/run/user/1000
+
+# Create a completely isolated browser profile
+rm -rf /tmp/chrome-kiosk-stable
+mkdir -p /tmp/chrome-kiosk-stable
+
+# Start Chromium with maximum isolation flags
+chromium-browser \
+  --kiosk \
+  --no-sandbox \
+  --disable-gpu \
+  --disable-software-rasterizer \
+  --disable-dev-shm-usage \
+  --user-data-dir=/tmp/chrome-kiosk-stable \
+  --force-device-scale-factor=1.0 \
+  --disable-features=TranslateUI,VizDisplayCompositor,WebRTC,MediaRouter \
+  --disable-ipc-flooding-protection \
+  --disable-background-timer-throttling \
+  --disable-backgrounding-occluded-windows \
+  --disable-renderer-backgrounding \
+  --disable-sync \
+  --disable-default-apps \
+  --disable-extensions \
+  --no-first-run \
+  --disable-web-security \
+  --disable-features=VizDisplayCompositor \
+  --disable-background-networking \
+  --disable-component-extensions-with-background-pages \
+  --disable-background-downloads \
+  --disable-client-side-phishing-detection \
+  --disable-datasaver-prompt \
+  --disable-domain-reliability \
+  --disable-features=TranslateUI,BlinkGenPropertyTrees \
+  --disable-hang-monitor \
+  --disable-ipc-flooding-protection \
+  --disable-prompt-on-repost \
+  --disable-sync-preferences \
+  --disable-web-resources \
+  --no-default-browser-check \
+  --no-pings \
+  --no-service-autorun \
+  --password-store=basic \
+  --use-mock-keychain \
+  --disable-breakpad \
+  --disable-crash-reporter \
+  --disable-in-process-stack-traces \
+  --disable-logging \
+  --disable-permissions-api \
+  --disable-speech-api \
+  --disable-file-system \
+  --disable-presentation-api \
+  --disable-remote-fonts \
+  --disable-webgl \
+  --disable-webgl2 \
+  --disable-3d-apis \
+  --disable-accelerated-2d-canvas \
+  --disable-accelerated-jpeg-decoding \
+  --disable-accelerated-mjpeg-decode \
+  --disable-accelerated-video-decode \
+  --disable-gpu-compositing \
+  --disable-gpu-rasterization \
+  --disable-gpu-sandbox \
+  --disable-software-rasterizer \
+  --disable-threaded-compositing \
+  --disable-threaded-scrolling \
+  --disable-checker-imaging \
+  --disable-image-animation-resync \
+  --disable-new-tab-first-run \
+  --disable-offer-store-unmasked-wallet-cards \
+  --disable-print-preview \
+  --disable-speech-synthesis-api \
+  --disable-speech-synthesis-api \
+  --disable-translate \
+  --disable-voice-input \
+  --disable-wake-on-wifi \
+  --enable-aggressive-domstorage-flushing \
+  --enable-simple-cache-backend \
+  --force-fieldtrials=*BackgroundTracing/default/ \
+  --memory-pressure-off \
+  --max_old_space_size=4096 \
+  --js-flags="--max-old-space-size=4096" \
+  http://localhost:8787
+
+echo "Ultra-stable kiosk browser started!"

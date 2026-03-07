@@ -1,0 +1,20 @@
+[Unit]
+Description=Ultra-Stable Smart Display Kiosk Browser
+After=network.target pi-smart-display.service
+Wants=pi-smart-display.service
+
+[Service]
+Type=simple
+EnvironmentFile=/opt/pi-smart-display/ops/env.sh
+ExecStart=/bin/bash -lc "${PI_DISPLAY_HOME}/ops/stable-kiosk.sh"
+WorkingDirectory=${PI_DISPLAY_HOME}
+StandardOutput=journal
+StandardError=journal
+Restart=always
+RestartSec=5
+User=${PI_DISPLAY_USER}
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+[Install]
+WantedBy=graphical.target

@@ -1,6 +1,13 @@
 # Node / Vite
 node_modules/
 dist/
+**/node_modules/
+**/dist/
+.env
+**/.env
+data/
+ops/logs/
+._*
 .vite/
 
 # Logs

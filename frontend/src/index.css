@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* extras used by the components */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* display font setup */
+:root {
+  font-family: "Cormorant Garamond", "Libre Baskerville", "Times New Roman", serif;
+  background-color: #fef7f7;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap');
+
+/* Apple-esque Glass Panel (Light) */
+.glass-card {
+  border-radius: 22px;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.glass-shadow {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Apple-esque Glass Panel (Dark) */
+.glass-card-dark {
+  border-radius: 28px;
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 199, 211, 0.35);
+}
+.glass-shadow-dark {
+  box-shadow: 0 16px 30px rgba(233, 169, 179, 0.2), 0 4px 10px rgba(120, 62, 78, 0.08);
+}
+
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255, 223, 230, 0.6), transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(255, 245, 248, 0.8), transparent 60%),
+    radial-gradient(circle at 50% 85%, rgba(255, 214, 225, 0.5), transparent 65%),
+    linear-gradient(180deg, #fff8fb 0%, #fdeff2 48%, #f9e2e8 100%);
+}
+
+.ambient-orb {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: rgba(255, 196, 210, 0.45);
+  filter: blur(20px);
+  animation: orb-drift 18s ease-in-out infinite;
+}
+
+.ambient-orb.orb-2 {
+  width: 320px;
+  height: 320px;
+  background: rgba(255, 235, 242, 0.6);
+  animation-delay: -6s;
+}
+
+.orb-static {
+  animation: none;
+}
+
+.performance-mode .glass-card-dark {
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.performance-mode .motion-fade-up {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orb {
+    animation: none;
+  }
+  .motion-fade-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes orb-drift {
+  0% { transform: translate(-20px, -10px); }
+  50% { transform: translate(30px, 20px); }
+  100% { transform: translate(-20px, -10px); }
+}
+
+/* Motion Utilities */
+.motion-fade-up {
+  animation: fade-up 0.3s ease-out forwards;
+  opacity: 0;
+  transform: translateY(6px);
+}
+@keyframes fade-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hover-lift {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.08), 0 12px 18px rgba(0, 0, 0, 0.12);
+}
+
+/* Pi-specific font scaling */
+.text-xs { font-size: 0.875rem; } /* 14px */
+.text-sm { font-size: 1rem; } /* 16px */
+.text-base { font-size: 1.125rem; } /* 18px */
+.text-lg { font-size: 1.25rem; } /* 20px */
+.text-xl { font-size: 1.5rem; } /* 24px */
+.text-2xl { font-size: 1.875rem; } /* 30px */
+.text-3xl { font-size: 2.25rem; } /* 36px */
+.text-4xl { font-size: 3rem; } /* 48px */
+.text-5xl { font-size: 3.75rem; } /* 60px */
+.text-6xl { font-size: 4.5rem; } /* 72px */

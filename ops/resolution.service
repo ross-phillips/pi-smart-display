@@ -1,0 +1,14 @@
+[Unit]
+Description=Set 4K Resolution on Boot
+After=graphical.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/pi-smart-display/ops/env.sh
+ExecStart=${PI_DISPLAY_HOME}/ops/set-4k-resolution.sh
+User=${PI_DISPLAY_USER}
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=graphical.target

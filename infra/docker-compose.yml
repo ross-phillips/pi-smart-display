@@ -1,0 +1,20 @@
+services:
+  proxy:
+    build:
+      context: ../backend/server
+      dockerfile: Dockerfile
+    ports:
+      - "8787:8787"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/web/Dockerfile
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "5173:5173"
+    depends_on:
+      - proxy
+    restart: unless-stopped
