@@ -1,8 +1,21 @@
 const safeArray = (value) => Array.isArray(value) ? value : [];
 
-const clampNumber = (value, fallback) => {
+const clampNumber = (value, min, max, fallback) => {
   const num = Number(value);
-  return Number.isFinite(num) ? num : fallback;
+  if (!Number.isFinite(num)) return fallback;
+  if (num < min) return min;
+  if (num > max) return max;
+  return num;
+};
+
+const safeTz = (value, fallback = "UTC") => {
+  if (typeof value !== "string" || !value) return fallback;
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: value });
+    return value;
+  } catch {
+    return fallback;
+  }
 };
 
 const safeString = (value, fallback = "") => {
@@ -16,14 +29,14 @@ const safeBool = (value, fallback = false) => {
 export function normalizeConfig(input) {
   const config = { ...input };
   config.appName = safeString(config.appName, "Pi Smart Display");
-  config.refreshMs = clampNumber(config.refreshMs, 15 * 60 * 1000);
+  config.refreshMs = clampNumber(config.refreshMs, 60_000, 24 * 60 * 60_000, 15 * 60 * 1000);
   config.adminToken = safeString(config.adminToken, "");
 
   config.location = {
-    lat: clampNumber(config.location?.lat, 0),
-    lon: clampNumber(config.location?.lon, 0),
-    tz: safeString(config.location?.tz, "Europe/London"),
-    label: safeString(config.location?.label, "Kitchen")
+    lat: clampNumber(config.location?.lat, -90, 90, 0),
+    lon: clampNumber(config.location?.lon, -180, 180, 0),
+    tz: safeTz(config.location?.tz, "Europe/London"),
+    label: safeString(config.location?.label, "")
   };
 
   config.layout = {

@@ -11,7 +11,7 @@ import React, { useEffect, useMemo, useState } from "react";
  *   - calendars: [{ name: string, url: string }]   // ICS URLs
  *   - feeds: [{ name: string, url: string }]       // RSS/Atom feed URLs
  *   - location: { lat: number, lon: number, tz?: string }
- *   - refreshMs: number                            // default 10 min
+ *   - refreshMs: number                            // default 15 min
  *   - apiBase: string                              // default "/api"
  */
 
@@ -73,7 +73,6 @@ function Clock({ tz }) {
     timeZone: tz,
   }).format(now);
 
-  const apiRoot = apiBase || "/api";
   return (
     <div className="flex items-baseline gap-8 mb-8">
       <div className="leading-none text-[140px] xl:text-[180px] font-semibold tracking-tight tabular-nums text-rose-900">
@@ -176,16 +175,21 @@ function WeatherCard({ apiBase, location, refreshTick }) {
   );
 }
 
-// Meals card removed
-
 function NewsCard({ apiBase, feeds, refreshTick }) {
   const [items, setItems] = useState([]);
   const [err, setErr] = useState(null);
 
+  // Stable key to avoid re-fetching when feeds array reference changes but content is the same
+  const feedQuery = useMemo(
+    () => feeds.map(f => encodeURIComponent(f.url)).join("&u="),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(feeds)]
+  );
+
   useEffect(() => {
+    if (!feedQuery) return;
     const abortController = new AbortController();
-    const urls = feeds.map(f => encodeURIComponent(f.url)).join("&u=");
-    fetch(`${apiBase}/news?u=${urls}`, { signal: abortController.signal })
+    fetch(`${apiBase}/news?u=${feedQuery}`, { signal: abortController.signal })
       .then(r => r.json())
       .then(setItems)
       .catch((err) => {
@@ -194,7 +198,7 @@ function NewsCard({ apiBase, feeds, refreshTick }) {
         }
       });
     return () => abortController.abort();
-  }, [apiBase, feeds, refreshTick]);
+  }, [apiBase, feedQuery, refreshTick]);
 
   if (err) return <div className={defaultStyle.card}>News error: {String(err)}</div>;
   if (!items?.length) return <div className={defaultStyle.card}>Loading news…</div>;
@@ -205,7 +209,8 @@ function NewsCard({ apiBase, feeds, refreshTick }) {
       <ul className="space-y-3">
         {items.slice(0, 10).map((it, i) => (
           <li key={i} className="leading-snug">
-            <a className="font-medium hover:underline text-rose-900" href={it.link} target="_blank" rel="noreferrer">{it.title}</a>
+            {/* Links are not useful in kiosk mode — render as plain text */}
+            <span className="font-medium text-rose-900">{it.title}</span>
             <div className="text-xs text-rose-400">{it.source} • {fmtDate(it.pubDate)}</div>
           </li>
         ))}
@@ -214,18 +219,16 @@ function NewsCard({ apiBase, feeds, refreshTick }) {
   );
 }
 
-// Calendars card removed
-
 function MealsPanel({ apiBase, tz, refreshTick, mealsUrl }) {
   const [items, setItems] = useState([]);
   const [err, setErr] = useState(null);
-  
+
   useEffect(() => {
     const abortController = new AbortController();
     if (!mealsUrl) return;
     const q = encodeURIComponent(mealsUrl);
     const url = `${apiBase}/meals?u=${q}&tz=${encodeURIComponent(tz)}`;
-    
+
     fetch(url, { signal: abortController.signal })
       .then(r => r.json())
       .then(data => setItems(data))
@@ -238,7 +241,7 @@ function MealsPanel({ apiBase, tz, refreshTick, mealsUrl }) {
   }, [apiBase, tz, refreshTick, mealsUrl]);
 
   if (err) return <div className={defaultStyle.card}>Meals error: {String(err.message || err)}</div>;
-  
+
   // Reorder to Monday-first week without changing backend data
   const byDay = new Map((items || []).map((d) => [d.day, d]));
   const fmtYmd = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
@@ -261,7 +264,9 @@ function MealsPanel({ apiBase, tz, refreshTick, mealsUrl }) {
         {ordered.map((e, i) => (
           <li key={i} className="flex items-center justify-between text-xl xl:text-xl">
             <div className="text-rose-500">{new Intl.DateTimeFormat(undefined, { weekday: 'long', timeZone: tz }).format(new Date(e.day))}</div>
-            <div className="text-rose-900 font-medium text-right truncate ml-6">{e.title ?? 'NO TITLE'}</div>
+            <div className="text-rose-900 font-medium text-right truncate ml-6">
+              {e.title ?? <span className="text-rose-300 italic">—</span>}
+            </div>
           </li>
         ))}
       </ul>
@@ -273,8 +278,15 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
   const [items, setItems] = useState([]);
   const [err, setErr] = useState(null);
 
+  // Stable query string — avoids re-fetching when calendars array reference changes but content is the same
+  const calQuery = useMemo(
+    () => (calendars?.[0]?.url ? encodeURIComponent(calendars[0].url) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(calendars)]
+  );
+
   useEffect(() => {
-    if (!calendars?.length) return;
+    if (!calQuery) return;
     const abortController = new AbortController();
     const now = new Date();
     const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
@@ -282,8 +294,7 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
     const end = new Date(now);
     end.setDate(now.getDate() + 7);
     const endStr = fmt.format(end);
-    const q = encodeURIComponent(calendars[0].url);
-    fetch(`${apiBase}/caldays?u=${q}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
+    fetch(`${apiBase}/caldays?u=${calQuery}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
       .then((res) => res.json())
       .then((data) => {
         const upcoming = data
@@ -296,9 +307,9 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
         if (error.name !== "AbortError") setErr(error);
       });
     return () => abortController.abort();
-  }, [apiBase, tz, refreshTick, calendars]);
+  }, [apiBase, tz, refreshTick, calQuery]);
 
-  if (!calendars?.length) return null;
+  if (!calQuery) return null;
   if (err) return <div className={defaultStyle.card}>Context error: {String(err)}</div>;
   if (!items.length) return null;
 
@@ -319,6 +330,11 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
 
 function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }) {
   const now = new Date();
+
+  // State declared first so getBinIcon closure can reference it
+  const [eventsByDay, setEventsByDay] = useState({});
+  const [binEventsByDay, setBinEventsByDay] = useState({});
+
   // Find Monday of current week - memoize to prevent constant re-renders
   const monday = useMemo(() => {
     const m = new Date(now);
@@ -334,39 +350,42 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
     return d;
   }), [monday]);
 
-  const wkLabels = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  // Stable calendar query
+  const calQuery = useMemo(
+    () => (calendars?.[0]?.url ? encodeURIComponent(calendars[0].url) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(calendars)]
+  );
+
+  const wkLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const isToday = (d) => new Date(d).toDateString() === now.toDateString();
   const monthRange = `${new Intl.DateTimeFormat(undefined, { month:'long', timeZone: tz }).format(days[0])} — ${new Intl.DateTimeFormat(undefined, { month:'long', timeZone: tz }).format(days[27])}`;
-  
-  // Bin icon function
+
+  // Bin icon function — declared after binEventsByDay state
   const getBinIcon = (dayStr) => {
     const binEvents = binEventsByDay[dayStr] || [];
     for (const event of binEvents) {
       const title = event.title || '';
       if (title.includes('Rubbish Bin Collection')) {
-        return <i className="fas fa-trash text-green-500 text-lg"></i>; // Green bin
+        return <i className="fas fa-trash text-green-500 text-lg"></i>;
       } else if (title.includes('Recycling Bin Collection')) {
-        return <i className="fas fa-recycle text-blue-500 text-lg"></i>; // Blue bin
+        return <i className="fas fa-recycle text-blue-500 text-lg"></i>;
       } else if (title.includes('Garden Waste Bin Collection')) {
-        return <i className="fas fa-leaf text-amber-600 text-lg"></i>; // Brown bin
+        return <i className="fas fa-leaf text-amber-600 text-lg"></i>;
       }
     }
     return null;
   };
 
-  const [eventsByDay, setEventsByDay] = useState({});
-  const [binEventsByDay, setBinEventsByDay] = useState({});
-  
   useEffect(() => {
+    if (!calQuery) return;
     const abortController = new AbortController();
     const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
     const startStr = fmt.format(days[0]);
     const endStr = fmt.format(days[27]);
-    
+
     // Fetch main calendar
-    if (!calendars?.length) return;
-    const q = encodeURIComponent(calendars[0].url);
-    fetch(`${apiBase}/caldays?u=${q}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
+    fetch(`${apiBase}/caldays?u=${calQuery}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
       .then(r=>r.json())
       .then(arr => {
         const map = {};
@@ -378,7 +397,7 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
           console.error('Calendar fetch error:', err);
         }
       });
-      
+
     if (binCalendar?.enabled && binCalendar?.url) {
       const binQ = encodeURIComponent(binCalendar.url);
       fetch(`${apiBase}/caldays?u=${binQ}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
@@ -394,13 +413,13 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
           }
         });
     }
-      
+
     return () => abortController.abort();
-  }, [apiBase, tz, monday, refreshTick]);
+  }, [apiBase, tz, monday, refreshTick, calQuery]);
 
   return (
-    <div className="fixed left-7 bottom-7 w-[83vw] h-[82vh]">
-      <div className={`${defaultStyle.card} w-full h-full p-6 flex flex-col`}>
+    <div className="mt-6">
+      <div className={`${defaultStyle.card} w-full p-6 flex flex-col`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[32px] xl:text-[36px] font-semibold tracking-tight text-rose-800">{monthRange}</h3>
         </div>
@@ -453,45 +472,23 @@ export default function SmartDisplay({
   const refreshMs = config?.refreshMs || 15 * 60 * 1000;
   const refreshTick = useRefresh(refreshMs);
   const apiRoot = apiBase || "/api";
-  
-  // Add periodic full page reload to prevent memory issues
+
+  // Add periodic full page reload to prevent memory issues over long runtimes
   useEffect(() => {
-    // Reload the page every 2 hours (8 refreshes at 15min intervals)
     const fullReloadInterval = 2 * 60 * 60 * 1000; // 2 hours
     const reloadTimer = setTimeout(() => {
       window.location.reload();
     }, fullReloadInterval);
-    
     return () => clearTimeout(reloadTimer);
   }, []);
-  
-  // Add error boundary with recovery
-  useEffect(() => {
-    const handleError = (event) => {
-      console.error('Global error:', event.error);
-      // Reload after a short delay if there's a critical error
-      setTimeout(() => {
-        window.location.reload();
-      }, 5000);
-    };
-    
-    // Detect white screen - check if main content is missing or empty
-    const whiteScreenChecker = setInterval(() => {
-      const main = document.querySelector('main');
-      const hasContent = main && main.children.length > 0 && main.textContent.trim().length > 0;
-      // If we have a body but no main content, assume white screen
-      if (document.body && !hasContent) {
-        console.log('White screen detected (no content), reloading...');
-        window.location.reload();
-      }
-    }, 60000); // Check every 60 seconds
-    
-    window.addEventListener('error', handleError);
-    return () => {
-      window.removeEventListener('error', handleError);
-      clearInterval(whiteScreenChecker);
-    };
-  }, []);
+
+  // Stable memoised versions of array props — prevents child useEffect deps
+  // from firing on every render when array content hasn't actually changed
+  const stableFeeds = useMemo(() => feeds, // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(feeds)]);
+  const stableCalendars = useMemo(() => calendars, // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(calendars)]);
+
   const reduceMotion = layout?.reducedMotion;
   const performanceMode = layout?.performanceMode;
 
@@ -509,10 +506,10 @@ export default function SmartDisplay({
         <div className="space-y-6">
           <Clock tz={location?.tz} />
           {layout?.showContext !== false ? (
-            <ContextHighlights apiBase={apiRoot} tz={location?.tz} refreshTick={refreshTick} calendars={calendars} />
+            <ContextHighlights apiBase={apiRoot} tz={location?.tz} refreshTick={refreshTick} calendars={stableCalendars} />
           ) : null}
           {layout?.showNews !== false ? (
-            <NewsCard apiBase={apiRoot} feeds={feeds} refreshTick={refreshTick} />
+            <NewsCard apiBase={apiRoot} feeds={stableFeeds} refreshTick={refreshTick} />
           ) : null}
         </div>
         <div className="space-y-6 xl:col-start-2 xl:justify-self-end w-full">
@@ -533,7 +530,7 @@ export default function SmartDisplay({
           tz={location?.tz}
           apiBase={apiRoot}
           refreshTick={refreshTick}
-          calendars={calendars}
+          calendars={stableCalendars}
           binCalendar={binCalendar}
         />
       ) : null}

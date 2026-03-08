@@ -3,16 +3,12 @@ import path from "path";
 
 const DEFAULT_CONFIG = {
   appName: "Pi Smart Display",
-  location: { lat: 0, lon: 0, tz: "Europe/London", label: "Kitchen" },
+  location: { lat: 0, lon: 0, tz: "Europe/London", label: "" },
   feeds: [
-    { name: "BBC", url: "https://feeds.bbci.co.uk/news/rss.xml" },
+    { name: "BBC News", url: "https://feeds.bbci.co.uk/news/rss.xml" },
     { name: "The Verge", url: "https://www.theverge.com/rss/index.xml" }
   ],
   calendars: [
-    {
-      name: "Family Calendar",
-      url: "REMOVED_PRIVATE_CALENDAR_URL"
-    },
     {
       name: "UK Holidays",
       url: "https://calendar.google.com/calendar/ical/en.uk%23holiday%40group.v.calendar.google.com/public/basic.ics"
@@ -20,7 +16,7 @@ const DEFAULT_CONFIG = {
   ],
   mealsCalendar: {
     name: "Weekly Meals",
-    url: "REMOVED_PRIVATE_CALENDAR_URL"
+    url: ""
   },
   binCalendar: {
     name: "Bin Collection",
@@ -47,8 +43,7 @@ const DEFAULT_CONFIG = {
     hosts: [
       "feeds.bbci.co.uk",
       "www.theverge.com",
-      "calendar.google.com",
-      "p46-caldav.icloud.com"
+      "calendar.google.com"
     ],
     filePaths: ["/opt/pi-smart-display/data/bin_collection.ics"]
   }

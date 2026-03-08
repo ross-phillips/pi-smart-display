@@ -12,56 +12,11 @@ import { getDataDir, readJson, writeJson } from "./lib/storage.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
+
 const configState = { value: loadConfig() };
 const log = createLogger(process.env.DEBUG_LOGS === "true");
 const dataDir = getDataDir();
 const snapshotPath = path.join(dataDir, "snapshot.json");
-// Meals: minimal weekly-recurring expansion for next 14 days
-app.get("/api/meals", async (req, res) => {
-  try {
-    const cfg = configState.value;
-    const icsUrl = String(req.query.u || cfg.mealsCalendar?.url || "");
-    const tz = String(req.query.tz || cfg.location?.tz || "Europe/London");
-    if (!icsUrl) return res.status(400).json({ error: "meals calendar not configured" });
-    const key = `meals:v2:${icsUrl}:${tz}`;
-    const c = cache.get(key); if (c) return res.json(c);
-    const txt = await fetchText(icsUrl, cfg);
-    const events = parseICS(txt, icsUrl);
-    const now = new Date();
-    const monday = new Date(now);
-    const dow = (now.getDay() + 6) % 7;
-    monday.setDate(now.getDate() - dow);
-    monday.setHours(0, 0, 0, 0);
-    const windowStart = new Date(monday);
-    const windowEnd = new Date(monday);
-    windowEnd.setDate(monday.getDate() + 6);
-    const expanded = expandEvents(events, windowStart, windowEnd);
-    const days = mapEventsToDays(expanded, windowStart, windowEnd, tz);
-    const out = days.map((d) => ({ day: d.day, title: d.titles?.[0]?.title ?? null }));
-    cache.set(key, out, 2 * 60 * 1000);
-    const snapshot = readJson(snapshotPath, {});
-    writeJson(snapshotPath, { ...snapshot, meals: out, updatedAt: new Date().toISOString() });
-    res.json(out);
-  } catch (e) {
-    const snapshot = readJson(snapshotPath, {});
-    if (snapshot.meals) return res.json(snapshot.meals);
-    res.status(500).json({ error: String(e) });
-  }
-});
-// Allow browser requests from http://localhost:5173
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next();
-});
-
-app.use((req, _res, next) => {
-  log.info(req.method, req.url);
-  next();
-});
-
 const PORT = process.env.PORT || 8787;
 
 // Resolve project root and dist path (server runs from backend/server)
@@ -70,6 +25,28 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 const distDir = path.join(projectRoot, "frontend", "dist");
 const hasBuiltFrontend = fs.existsSync(path.join(distDir, "index.html"));
+
+// ── CORS: local-network only ────────────────────────────────────────────────
+// Allow requests from localhost and RFC-1918 private IP ranges only.
+// DO NOT use wildcard '*' — that lets any origin on the internet call this API.
+// DO NOT add --disable-web-security to kiosk scripts — handle CORS here instead.
+const PRIVATE_IP_RE = /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/;
+app.use((req, res, next) => {
+  const origin = req.headers.origin || "";
+  if (PRIVATE_IP_RE.test(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
+app.use((req, _res, next) => {
+  log.info(req.method, req.url);
+  next();
+});
 
 // Serve built frontend if it exists
 if (hasBuiltFrontend) {
@@ -80,16 +57,27 @@ const cache = createCache();
 
 const configResponse = () => sanitizeConfig(configState.value);
 
-// Calendar endpoints removed per request
-// Lightweight per-day calendar aggregation for a single ICS
+// Helper: require admin token if one is configured
+const requireAuth = (req, res) => {
+  const required = configState.value.adminToken;
+  if (!required) return true;
+  const token = String(req.headers["x-admin-token"] || "");
+  if (token !== required) {
+    res.status(403).json({ error: "unauthorized" });
+    return false;
+  }
+  return true;
+};
 
-// Clear cache endpoint
-app.post("/api/clear-cache", (req, res) => {
-  cache.clear();
-  res.json({ message: "Cache cleared" });
+// Helper: validate YYYY-MM-DD date strings
+const isValidDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s).getTime());
+
+// ── API Routes ──────────────────────────────────────────────────────────────
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", time: new Date().toISOString() });
 });
 
-// Debug endpoint to test date range filtering
 app.get("/api/config", (req, res) => {
   res.json(configResponse());
 });
@@ -110,8 +98,11 @@ app.post("/api/config", (req, res) => {
   }
 });
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", time: new Date().toISOString() });
+// Clear cache — requires auth if adminToken is set
+app.post("/api/clear-cache", (req, res) => {
+  if (!requireAuth(req, res)) return;
+  cache.clear();
+  res.json({ message: "Cache cleared" });
 });
 
 app.get("/api/caldays", async (req, res) => {
@@ -119,8 +110,11 @@ app.get("/api/caldays", async (req, res) => {
     let icsUrl = String(req.query.u || "");
     const tz = String(req.query.tz || configState.value.location?.tz || "Europe/London");
     const start = String(req.query.start || ""); // YYYY-MM-DD
-    const end = String(req.query.end || "");   // YYYY-MM-DD
+    const end = String(req.query.end || "");     // YYYY-MM-DD
     if (!icsUrl || !start || !end) return res.status(400).json({ error: "u,start,end required" });
+    if (!isValidDate(start) || !isValidDate(end)) {
+      return res.status(400).json({ error: "start and end must be YYYY-MM-DD" });
+    }
     const cfg = configState.value;
     if (!isAllowedResource(icsUrl, cfg)) {
       return res.status(403).json({ error: "calendar source not allowed" });
@@ -145,6 +139,7 @@ app.get("/api/caldays", async (req, res) => {
 });
 
 function parseRSS(xml, sourceName) {
+  if (xml.length > 1_048_576) throw new Error("RSS feed too large (>1 MB)");
   const items = [];
   const get = (re, s) => (s.match(re)?.[1] || "").trim();
   const entryRe = /<item[\s\S]*?<\/item>|<entry[\s\S]*?<\/entry>/gi;
@@ -200,12 +195,48 @@ app.get("/api/news", async (req, res) => {
   }
 });
 
+// Meals: minimal weekly-recurring expansion for next 7 days
+app.get("/api/meals", async (req, res) => {
+  try {
+    const cfg = configState.value;
+    const icsUrl = String(req.query.u || cfg.mealsCalendar?.url || "");
+    const tz = String(req.query.tz || cfg.location?.tz || "Europe/London");
+    if (!icsUrl) return res.status(400).json({ error: "meals calendar not configured" });
+    const key = `meals:v2:${icsUrl}:${tz}`;
+    const c = cache.get(key); if (c) return res.json(c);
+    const txt = await fetchText(icsUrl, cfg);
+    const events = parseICS(txt, icsUrl);
+    const now = new Date();
+    const monday = new Date(now);
+    const dow = (now.getDay() + 6) % 7;
+    monday.setDate(now.getDate() - dow);
+    monday.setHours(0, 0, 0, 0);
+    const windowStart = new Date(monday);
+    const windowEnd = new Date(monday);
+    windowEnd.setDate(monday.getDate() + 6);
+    const expanded = expandEvents(events, windowStart, windowEnd);
+    const days = mapEventsToDays(expanded, windowStart, windowEnd, tz);
+    const out = days.map((d) => ({ day: d.day, title: d.titles?.[0]?.title ?? null }));
+    cache.set(key, out, 2 * 60 * 1000);
+    const snapshot = readJson(snapshotPath, {});
+    writeJson(snapshotPath, { ...snapshot, meals: out, updatedAt: new Date().toISOString() });
+    res.json(out);
+  } catch (e) {
+    const snapshot = readJson(snapshotPath, {});
+    if (snapshot.meals) return res.json(snapshot.meals);
+    res.status(500).json({ error: String(e) });
+  }
+});
+
 app.get("/api/weather", async (req, res) => {
   try {
     const cfg = configState.value;
     const lat = Number(req.query.lat ?? cfg.location?.lat);
     const lon = Number(req.query.lon ?? cfg.location?.lon);
     if (Number.isNaN(lat) || Number.isNaN(lon)) throw new Error("lat/lon required");
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      return res.status(400).json({ error: "lat/lon out of range" });
+    }
 
     // bump version to invalidate old cached shape/units
     const key = `wx:v2:${lat},${lon}`;
@@ -289,9 +320,6 @@ app.get("/api/weather", async (req, res) => {
   }
 });
 
-// Meals: tz-aware 7-day bucketing from a single ICS URL
-// Meals endpoint removed per request
-
 // SPA fallback for non-API routes to support client-side routing
 app.get(/^(?!\/api\/).*$/, (req, res, next) => {
   if (req.method !== "GET") return next();
@@ -304,20 +332,6 @@ app.get(/^(?!\/api\/).*$/, (req, res, next) => {
   res.status(200).send(
     "Frontend not built. Use http://localhost:5173 during development (npm run dev) or run 'npm run serve' to build and serve production."
   );
-});
-
-// Debug endpoint to see raw parsed events
-app.get("/api/debug-events", async (req, res) => {
-  try {
-    const cfg = configState.value;
-    const icsUrl = String(req.query.u || "");
-    if (!icsUrl) return res.status(400).json({ error: "u required" });
-    const txt = await fetchText(icsUrl, cfg);
-    const events = parseICS(txt, icsUrl);
-    res.json({ total: events.length, events });
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
-  }
 });
 
 app.listen(PORT, () => console.log(`Server listening on http://0.0.0.0:${PORT}`));

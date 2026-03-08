@@ -9,7 +9,7 @@ sleep 2
 
 # Set environment variables
 export DISPLAY=:0
-export XDG_RUNTIME_DIR=/run/user/1000
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
 
 # Create a clean browser profile
 rm -rf /tmp/chrome-kiosk-simple
@@ -33,7 +33,7 @@ chromium-browser \
   --disable-default-apps \
   --disable-extensions \
   --no-first-run \
-  --disable-web-security \
+  # DO NOT add --disable-web-security — CORS is handled by the backend server.
   --disable-background-networking \
   --disable-component-extensions-with-background-pages \
   --disable-background-downloads \

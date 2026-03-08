@@ -22,7 +22,7 @@ chromium-browser \
   --no-sandbox \
   --disable-gpu \
   --start-fullscreen \
-  --disable-web-security \
   --disable-features=TranslateUI \
   --disable-ipc-flooding-protection \
-  http://localhost:3000
+  # DO NOT add --disable-web-security — CORS is handled by the backend server.
+  http://localhost:8787
