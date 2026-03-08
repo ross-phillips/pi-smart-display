@@ -93,17 +93,28 @@ function Clock({ tz }) {
   }).formatToParts(now);
   const get = (t) => parts.find((p) => p.type === t)?.value ?? "00";
   const timeStr = `${get("hour")}:${get("minute")}:${get("second")}`;
+
+  const weekdayStr = new Intl.DateTimeFormat(undefined, {
+    weekday: "long", timeZone: tz,
+  }).format(now);
   const dateStr = new Intl.DateTimeFormat(undefined, {
-    weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: tz,
+    day: "numeric", month: "long", year: "numeric", timeZone: tz,
   }).format(now);
 
   return (
-    <div className="flex-shrink-0">
-      <div className="leading-none text-[110px] xl:text-[148px] font-bold tracking-tight tabular-nums text-stone-900">
+    <div className="flex-shrink-0 flex items-center gap-6">
+      {/* Time — large, left */}
+      <div className="leading-none text-[110px] xl:text-[148px] font-bold tracking-tight tabular-nums text-stone-900 flex-shrink-0">
         {timeStr}
       </div>
-      <div className="text-[26px] xl:text-[32px] text-stone-500 font-medium tracking-wide mt-1">
-        {dateStr}
+      {/* Date — stacked, right-aligned to remaining space */}
+      <div className="flex flex-col justify-center pb-2">
+        <div className="text-[26px] xl:text-[34px] font-semibold text-stone-700 leading-tight">
+          {weekdayStr}
+        </div>
+        <div className="text-[22px] xl:text-[28px] text-stone-400 font-normal leading-tight">
+          {dateStr}
+        </div>
       </div>
     </div>
   );
@@ -179,10 +190,16 @@ function WeatherCard({ apiBase, location, refreshTick }) {
   );
 }
 
-// ─── News ─────────────────────────────────────────────────────────────────────
-function NewsCard({ apiBase, feeds, refreshTick }) {
-  const [items, setItems] = useState([]);
-  const [err, setErr]     = useState(null);
+// ─── News Ticker ──────────────────────────────────────────────────────────────
+// Shows one headline at a time, cycling every 20 s with a fade transition.
+const TICKER_INTERVAL_MS  = 20_000;
+const TICKER_FADE_MS      = 400;
+
+function NewsTicker({ apiBase, feeds, refreshTick }) {
+  const [items, setItems]   = useState([]);
+  const [err, setErr]       = useState(null);
+  const [idx, setIdx]       = useState(0);
+  const [visible, setVisible] = useState(true);
 
   const feedQuery = useMemo(
     () => feeds.map(f => encodeURIComponent(f.url)).join("&u="),
@@ -190,29 +207,73 @@ function NewsCard({ apiBase, feeds, refreshTick }) {
     [JSON.stringify(feeds)]
   );
 
+  // Fetch headlines
   useEffect(() => {
     if (!feedQuery) return;
     const ctrl = new AbortController();
     fetch(`${apiBase}/news?u=${feedQuery}`, { signal: ctrl.signal })
-      .then(r => r.json()).then(setItems)
+      .then(r => r.json())
+      .then(data => { setItems(Array.isArray(data) ? data : []); setIdx(0); })
       .catch(e => { if (e.name !== "AbortError") setErr(e); });
     return () => ctrl.abort();
   }, [apiBase, feedQuery, refreshTick]);
 
-  if (err)           return <div className={S.card}>News error</div>;
-  if (!items?.length) return <div className={S.card}>Loading news…</div>;
+  // Cycle through items with fade
+  useEffect(() => {
+    if (items.length < 2) return;
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIdx(i => (i + 1) % items.length);
+        setVisible(true);
+      }, TICKER_FADE_MS);
+    }, TICKER_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [items.length]);
+
+  const item = items[idx];
+  const total = Math.min(items.length, 20);
+
+  if (err)            return <div className={S.card}>News error</div>;
+  if (!items.length)  return <div className={S.card + " flex items-center justify-center"}>
+    <span className={S.muted}>Loading news…</span>
+  </div>;
 
   return (
-    <div className={S.card}>
-      <h3 className={S.title}>Latest News</h3>
-      <ul className="space-y-3">
-        {items.slice(0, 8).map((it, i) => (
-          <li key={i} className="leading-snug">
-            <span className={`font-medium ${S.primary}`}>{it.title}</span>
-            <div className={`text-xs ${S.muted}`}>{it.source} · {fmtDate(it.pubDate)}</div>
-          </li>
-        ))}
-      </ul>
+    <div className={`${S.card} flex flex-col justify-between`}>
+      <div>
+        <h3 className={S.title}>News</h3>
+        {/* Headline — fades between items */}
+        <div
+          style={{
+            opacity: visible ? 1 : 0,
+            transition: `opacity ${TICKER_FADE_MS}ms ease`,
+          }}
+        >
+          <p className={`font-medium ${S.primary} text-xl leading-snug`}>
+            {item?.title ?? ""}
+          </p>
+          <p className={`text-sm ${S.muted} mt-2`}>
+            {item?.source}{item?.pubDate ? ` · ${fmtDate(item.pubDate)}` : ""}
+          </p>
+        </div>
+      </div>
+
+      {/* Progress dots */}
+      {total > 1 && (
+        <div className="flex gap-1.5 mt-4 flex-wrap">
+          {Array.from({ length: total }, (_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full transition-all duration-300 ${
+                i === idx % total
+                  ? "bg-stone-500 w-5"
+                  : "bg-stone-200 w-1.5"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -492,15 +553,23 @@ export default function SmartDisplay({ config, apiBase = "/api" }) {
       <div className="flex flex-col flex-1 min-w-0 gap-5 px-6 py-6 xl:px-8 xl:py-7 overflow-hidden">
         <Clock tz={location?.tz} />
 
-        {layout?.showContext !== false && (
-          <ContextHighlights
-            apiBase={apiRoot} tz={location?.tz}
-            refreshTick={refreshTick} calendars={stableCalendars}
-          />
-        )}
-
-        {layout?.showNews !== false && (
-          <NewsCard apiBase={apiRoot} feeds={stableFeeds} refreshTick={refreshTick} />
+        {/* Coming Up + News ticker — side by side at equal width */}
+        {(layout?.showContext !== false || layout?.showNews !== false) && (
+          <div className="flex gap-5 flex-shrink-0">
+            {layout?.showContext !== false && (
+              <div className="flex-1 min-w-0">
+                <ContextHighlights
+                  apiBase={apiRoot} tz={location?.tz}
+                  refreshTick={refreshTick} calendars={stableCalendars}
+                />
+              </div>
+            )}
+            {layout?.showNews !== false && (
+              <div className="flex-1 min-w-0">
+                <NewsTicker apiBase={apiRoot} feeds={stableFeeds} refreshTick={refreshTick} />
+              </div>
+            )}
+          </div>
         )}
 
         {/* Calendar fills whatever vertical space remains */}
