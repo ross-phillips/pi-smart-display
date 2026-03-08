@@ -1,17 +1,23 @@
 #!/bin/bash
-# Bare minimum kiosk browser configuration
+# Stable kiosk launcher — called by ~/.xinitrc on startx
 
-echo "Starting minimal kiosk browser..."
-
-# Kill any existing browsers
-pkill -f chromium
-sleep 2
-
-# Set environment variables
 export DISPLAY=:0
-export XDG_RUNTIME_DIR=/run/user/1000
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
 
-# Start Chromium with bare minimum flags (removed flags that cause white screens)
+# Keep display always on (no sensor required)
+xset -dpms
+xset s off
+xset s noblank
+
+# Turn HDMI output on in case it was blanked
+vcgencmd display_power 1 2>/dev/null || true
+
+# Hide mouse cursor after 1s of inactivity
+unclutter -idle 1 -root &
+
+pkill -f chromium 2>/dev/null || true
+sleep 1
+
 chromium-browser \
   --kiosk \
   --no-sandbox \
@@ -29,7 +35,5 @@ chromium-browser \
   --enable-features=NetworkService \
   --disable-software-rasterizer \
   --force-device-scale-factor=1.0 \
-  --user-data-dir=/tmp/chrome-kiosk-minimal \
-  http://localhost:5173
-
-echo "Minimal kiosk browser started!"
+  --user-data-dir=/tmp/chrome-kiosk \
+  http://localhost:8787
