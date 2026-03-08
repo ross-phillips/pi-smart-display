@@ -6,6 +6,19 @@ const normalizeWebcal = (value) => value.replace(/^webcal:\/\//i, "https://");
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_RESPONSE_BYTES = 1_048_576; // 1 MB
 
+/** Collect every hostname already trusted by virtue of being in the config */
+function configuredHosts(config) {
+  const urls = [
+    config?.mealsCalendar?.url,
+    ...(config?.calendars ?? []).map((c) => c.url),
+    ...(config?.feeds ?? []).map((f) => f.url),
+  ].filter(Boolean);
+  return urls.flatMap((raw) => {
+    try { return [new URL(normalizeWebcal(raw)).hostname]; }
+    catch { return []; }
+  });
+}
+
 export function isAllowedResource(rawUrl, config) {
   if (!config?.allowlist?.enabled) return true;
   if (!rawUrl) return false;
@@ -13,8 +26,12 @@ export function isAllowedResource(rawUrl, config) {
     return config.allowlist.filePaths?.includes(rawUrl);
   }
   try {
-    const url = new URL(normalizeWebcal(rawUrl));
-    return config.allowlist.hosts?.includes(url.hostname);
+    const { hostname } = new URL(normalizeWebcal(rawUrl));
+    // Accept if explicitly in the allowlist OR already a configured source URL
+    return (
+      config.allowlist.hosts?.includes(hostname) ||
+      configuredHosts(config).includes(hostname)
+    );
   } catch {
     return false;
   }

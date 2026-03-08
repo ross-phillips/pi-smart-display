@@ -230,8 +230,8 @@ function MealsPanel({ apiBase, tz, refreshTick, mealsUrl }) {
     const url = `${apiBase}/meals?u=${q}&tz=${encodeURIComponent(tz)}`;
 
     fetch(url, { signal: abortController.signal })
-      .then(r => r.json())
-      .then(data => setItems(data))
+      .then(r => r.ok ? r.json() : r.json().then(b => Promise.reject(new Error(b?.error || `HTTP ${r.status}`))))
+      .then(data => setItems(Array.isArray(data) ? data : []))
       .catch((err) => {
         if (err.name !== 'AbortError') {
           setErr(err);
