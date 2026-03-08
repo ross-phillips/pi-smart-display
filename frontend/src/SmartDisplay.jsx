@@ -295,9 +295,9 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
     end.setDate(now.getDate() + 7);
     const endStr = fmt.format(end);
     fetch(`${apiBase}/caldays?u=${calQuery}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
-      .then((res) => res.json())
+      .then((res) => res.ok ? res.json() : res.json().then(b => Promise.reject(new Error(b?.error || `HTTP ${res.status}`))))
       .then((data) => {
-        const upcoming = data
+        const upcoming = (Array.isArray(data) ? data : [])
           .flatMap((day) => (day.titles || []).map((title) => ({ day: day.day, title: title.title || title })))
           .filter((item) => item.title)
           .slice(0, 5);
@@ -384,34 +384,25 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
     const startStr = fmt.format(days[0]);
     const endStr = fmt.format(days[27]);
 
+    const toMap = (arr) => {
+      const map = {};
+      for (const it of (Array.isArray(arr) ? arr : [])) map[it.day] = it.titles || [];
+      return map;
+    };
+    const guardJson = (r) => r.ok ? r.json() : r.json().then(b => Promise.reject(new Error(b?.error || `HTTP ${r.status}`)));
+
     // Fetch main calendar
     fetch(`${apiBase}/caldays?u=${calQuery}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
-      .then(r=>r.json())
-      .then(arr => {
-        const map = {};
-        for (const it of arr) map[it.day] = it.titles || [];
-        setEventsByDay(map);
-      })
-      .catch((err) => {
-        if (err.name !== 'AbortError') {
-          console.error('Calendar fetch error:', err);
-        }
-      });
+      .then(guardJson)
+      .then(arr => setEventsByDay(toMap(arr)))
+      .catch((err) => { if (err.name !== 'AbortError') console.error('Calendar fetch error:', err); });
 
     if (binCalendar?.enabled && binCalendar?.url) {
       const binQ = encodeURIComponent(binCalendar.url);
       fetch(`${apiBase}/caldays?u=${binQ}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
-        .then(r=>r.json())
-        .then(arr => {
-          const map = {};
-          for (const it of arr) map[it.day] = it.titles || [];
-          setBinEventsByDay(map);
-        })
-        .catch((err) => {
-          if (err.name !== 'AbortError') {
-            console.error('Bin collection fetch error:', err);
-          }
-        });
+        .then(guardJson)
+        .then(arr => setBinEventsByDay(toMap(arr)))
+        .catch((err) => { if (err.name !== 'AbortError') console.error('Bin collection fetch error:', err); });
     }
 
     return () => abortController.abort();
