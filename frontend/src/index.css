@@ -10,7 +10,9 @@
   background-color: #FAF7F2;
 }
 
-html, body {
+/* overflow:hidden only in kiosk/display mode — settings page must scroll */
+html.kiosk-mode,
+html.kiosk-mode body {
   overflow: hidden;
   height: 100%;
 }

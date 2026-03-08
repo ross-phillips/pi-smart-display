@@ -11,6 +11,16 @@ function AppRouter() {
 
   const apiBase = import.meta.env.VITE_API_BASE || "/api";
 
+  // Kiosk display needs overflow:hidden; settings page must scroll freely
+  useEffect(() => {
+    if (!isSettings) {
+      document.documentElement.classList.add("kiosk-mode");
+    } else {
+      document.documentElement.classList.remove("kiosk-mode");
+    }
+    return () => document.documentElement.classList.remove("kiosk-mode");
+  }, [isSettings]);
+
   useEffect(() => {
     fetch(`${apiBase}/config`)
       .then((res) => res.json())
