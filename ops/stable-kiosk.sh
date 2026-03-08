@@ -13,14 +13,6 @@ vcgencmd display_power 1 2>/dev/null || true
 # Let X pick the best available mode (was correctly choosing 3840x2160 already)
 xrandr --auto
 
-# Read back actual screen dimensions — --disable-gpu causes Chromium's kiosk
-# to default to 1920x1080 instead of filling the X display, so we must pass
-# --window-size explicitly.
-SCREEN_W=$(xrandr 2>/dev/null | awk '/^Screen 0:/{match($0,/current ([0-9]+) x ([0-9]+)/,a); print a[1]; exit}')
-SCREEN_H=$(xrandr 2>/dev/null | awk '/^Screen 0:/{match($0,/current ([0-9]+) x ([0-9]+)/,a); print a[2]; exit}')
-SCREEN_W=${SCREEN_W:-1920}
-SCREEN_H=${SCREEN_H:-1080}
-
 # Hide mouse cursor after 1s of inactivity
 unclutter -idle 1 -root &
 
@@ -32,9 +24,7 @@ while true; do
   chromium-browser \
     --kiosk \
     --no-sandbox \
-    --disable-gpu \
     --disable-dev-shm-usage \
-    --window-size=${SCREEN_W},${SCREEN_H} \
     --no-first-run \
     --disable-default-apps \
     --disable-extensions \
