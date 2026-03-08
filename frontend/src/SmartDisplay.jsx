@@ -231,32 +231,40 @@ function NewsTicker({ apiBase, feeds, refreshTick }) {
     return () => clearInterval(interval);
   }, [items.length]);
 
-  const item = items[idx];
+  const item  = items[idx];
   const total = Math.min(items.length, 20);
 
-  if (err)            return <div className={S.card}>News error</div>;
-  if (!items.length)  return <div className={S.card + " flex items-center justify-center"}>
-    <span className={S.muted}>Loading news…</span>
-  </div>;
+  // Common wrapper — always visible with clear border so the card never disappears
+  const wrap = (children) => (
+    <div className="cream-card p-5 flex flex-col min-h-[120px]" style={{ border: "1px solid rgba(180,155,140,0.4)" }}>
+      <h3 className={S.title}>News</h3>
+      {children}
+    </div>
+  );
 
-  return (
-    <div className={`${S.card} flex flex-col justify-between`}>
-      <div>
-        <h3 className={S.title}>News</h3>
-        {/* Headline — fades between items */}
-        <div
-          style={{
-            opacity: visible ? 1 : 0,
-            transition: `opacity ${TICKER_FADE_MS}ms ease`,
-          }}
-        >
-          <p className={`font-medium ${S.primary} text-xl leading-snug`}>
-            {item?.title ?? ""}
-          </p>
-          <p className={`text-sm ${S.muted} mt-2`}>
-            {item?.source}{item?.pubDate ? ` · ${fmtDate(item.pubDate)}` : ""}
-          </p>
-        </div>
+  if (!feedQuery) return wrap(
+    <p className={`${S.muted} text-lg`}>Add RSS feeds in Settings to show news.</p>
+  );
+  if (err)        return wrap(
+    <p className="text-red-400 text-lg">News unavailable — check feed URLs in Settings.</p>
+  );
+  if (!items.length) return wrap(
+    <p className={`${S.muted} text-lg`}>Loading news…</p>
+  );
+
+  return wrap(
+    <>
+      {/* Headline — fades between items */}
+      <div
+        className="flex-1"
+        style={{ opacity: visible ? 1 : 0, transition: `opacity ${TICKER_FADE_MS}ms ease` }}
+      >
+        <p className={`font-medium ${S.primary} text-xl leading-snug`}>
+          {item?.title ?? ""}
+        </p>
+        <p className={`text-sm ${S.muted} mt-2`}>
+          {item?.source}{item?.pubDate ? ` · ${fmtDate(item.pubDate)}` : ""}
+        </p>
       </div>
 
       {/* Progress dots */}
@@ -266,15 +274,13 @@ function NewsTicker({ apiBase, feeds, refreshTick }) {
             <div
               key={i}
               className={`h-1 rounded-full transition-all duration-300 ${
-                i === idx % total
-                  ? "bg-stone-500 w-5"
-                  : "bg-stone-200 w-1.5"
+                i === idx % total ? "bg-stone-500 w-5" : "bg-stone-200 w-1.5"
               }`}
             />
           ))}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
