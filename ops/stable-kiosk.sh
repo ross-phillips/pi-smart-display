@@ -10,20 +10,12 @@ xset s off
 xset s noblank
 vcgencmd display_power 1 2>/dev/null || true
 
-# Set display resolution — try 4K first, fall back to 1080p, then auto
-DISP=$(xrandr 2>/dev/null | awk '/ connected/{print $1; exit}')
-if [ -n "$DISP" ]; then
-  xrandr --output "$DISP" --mode 3840x2160 2>/dev/null \
-    || xrandr --output "$DISP" --mode 1920x1080 2>/dev/null \
-    || xrandr --auto
-  sleep 1   # let the mode change settle before launching Chromium
-else
-  xrandr --auto
-fi
+# Let X pick the best available mode (was correctly choosing 3840x2160 already)
+xrandr --auto
 
-# Read back the actual screen dimensions after mode-set
-# --disable-gpu causes Chromium's kiosk to default to 1920x1080 instead of
-# filling the X display, so we pass --window-size explicitly.
+# Read back actual screen dimensions — --disable-gpu causes Chromium's kiosk
+# to default to 1920x1080 instead of filling the X display, so we must pass
+# --window-size explicitly.
 SCREEN_W=$(xrandr 2>/dev/null | awk '/^Screen 0:/{match($0,/current ([0-9]+) x ([0-9]+)/,a); print a[1]; exit}')
 SCREEN_H=$(xrandr 2>/dev/null | awk '/^Screen 0:/{match($0,/current ([0-9]+) x ([0-9]+)/,a); print a[2]; exit}')
 SCREEN_W=${SCREEN_W:-1920}
