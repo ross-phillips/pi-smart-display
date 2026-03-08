@@ -3,10 +3,8 @@
 # Pi Smart Display — Installer
 # Run on a fresh Raspberry Pi OS Lite (64-bit) after git clone
 #
-# Usage:
-#   git clone https://github.com/ross-phillips/pi-smart-display.git ~/pi-smart-display
-#   cd ~/pi-smart-display
-#   bash install.sh
+# Usage (one-liner from a fresh Pi):
+#   sudo apt install -y git && git clone https://github.com/ross-phillips/pi-smart-display.git ~/pi-smart-display && cd ~/pi-smart-display && bash install.sh
 # =============================================================================
 set -euo pipefail
 
@@ -26,6 +24,14 @@ echo -e "${NC}"
 
 # Guard: must not run as root (PM2 startup works better as the target user)
 [ "$EUID" -eq 0 ] && die "Do not run as root. Run as the pi user: bash install.sh"
+
+# =============================================================================
+# 0. Bootstrap — ensure git is available (needed if run before clone somehow)
+# =============================================================================
+if ! command -v git &>/dev/null; then
+  echo "Installing git..."
+  sudo apt-get update -qq && sudo apt-get install -y git -qq
+fi
 
 # =============================================================================
 # 1. System update
