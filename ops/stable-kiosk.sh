@@ -10,8 +10,16 @@ xset s off
 xset s noblank
 vcgencmd display_power 1 2>/dev/null || true
 
-# Auto-detect and apply the best resolution for the connected display
-xrandr --auto
+# Set display resolution — try 4K first, fall back to 1080p, then auto
+DISP=$(xrandr 2>/dev/null | awk '/ connected/{print $1; exit}')
+if [ -n "$DISP" ]; then
+  xrandr --output "$DISP" --mode 3840x2160 2>/dev/null \
+    || xrandr --output "$DISP" --mode 1920x1080 2>/dev/null \
+    || xrandr --auto
+  sleep 1   # let the mode change settle before launching Chromium
+else
+  xrandr --auto
+fi
 
 # Hide mouse cursor after 1s of inactivity
 unclutter -idle 1 -root &
