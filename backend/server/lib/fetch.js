@@ -4,7 +4,7 @@ import { URL } from "url";
 const normalizeWebcal = (value) => value.replace(/^webcal:\/\//i, "https://");
 
 const FETCH_TIMEOUT_MS = 10_000;
-const MAX_RESPONSE_BYTES = 1_048_576; // 1 MB
+const MAX_RESPONSE_BYTES = 5_242_880; // 5 MB — iCloud calendars store full history and routinely exceed 1 MB
 
 /** Collect every hostname already trusted by virtue of being in the config */
 function configuredHosts(config) {
