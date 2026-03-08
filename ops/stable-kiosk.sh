@@ -3,6 +3,7 @@
 
 export DISPLAY=:0
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+export XAUTHORITY=/home/ross/.Xauthority
 
 # Keep display always on (no sensor required)
 xset -dpms
@@ -10,8 +11,8 @@ xset s off
 xset s noblank
 vcgencmd display_power 1 2>/dev/null || true
 
-# Let X pick the best available mode (was correctly choosing 3840x2160 already)
-xrandr --auto
+# Force full 4K framebuffer on HDMI-2
+xrandr --output HDMI-2 --primary --mode 3840x2160 --rate 30 --pos 0x0 --scale 1x1 --fb 3840x2160
 
 # Hide mouse cursor after 1s of inactivity
 unclutter -idle 1 -root &
@@ -23,6 +24,8 @@ sleep 2
 while true; do
   chromium-browser \
     --kiosk \
+    --window-size=3840,2160 \
+    --window-position=0,0 \
     --no-sandbox \
     --disable-dev-shm-usage \
     --no-first-run \
