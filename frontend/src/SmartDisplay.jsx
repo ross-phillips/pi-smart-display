@@ -10,8 +10,8 @@ import React, { useEffect, useMemo, useState } from "react";
 // ─── Shared style tokens ──────────────────────────────────────────────────────
 const S = {
   card:    "cream-card p-5 motion-fade-up",
-  title:   "text-xl font-semibold tracking-tight mb-3 text-stone-700",
-  muted:   "text-stone-400",
+  title:   "text-[clamp(18px,1.4vw,24px)] font-semibold tracking-tight mb-3 text-stone-700",
+  muted:   "text-[clamp(12px,1.1vw,16px)] text-stone-400",
   primary: "text-stone-800",
   soft:    "text-stone-500",
 };
@@ -104,15 +104,15 @@ function Clock({ tz }) {
   return (
     <div className="flex-shrink-0 flex items-center gap-6">
       {/* Time — large, left */}
-      <div className="leading-none text-[110px] xl:text-[148px] font-bold tracking-tight tabular-nums text-stone-900 flex-shrink-0">
+      <div className="leading-none text-[clamp(90px,8vw,160px)] font-bold tracking-tight tabular-nums text-stone-900 flex-shrink-0">
         {timeStr}
       </div>
       {/* Date — stacked, right-aligned to remaining space */}
       <div className="flex flex-col justify-center pb-2">
-        <div className="text-[26px] xl:text-[34px] font-semibold text-stone-700 leading-tight">
+        <div className="text-[clamp(20px,2vw,36px)] font-semibold text-stone-700 leading-tight">
           {weekdayStr}
         </div>
-        <div className="text-[22px] xl:text-[28px] text-stone-400 font-normal leading-tight">
+        <div className="text-[clamp(16px,1.6vw,30px)] text-stone-400 font-normal leading-tight">
           {dateStr}
         </div>
       </div>
@@ -140,15 +140,15 @@ function WeatherCard({ apiBase, location, refreshTick }) {
   return (
     <div className={`${S.card} flex-1 min-h-0 flex flex-col overflow-hidden`}>
       {/* City */}
-      <div className={`${S.muted} text-right text-sm mb-1`}>{data.city ?? ""}</div>
+      <div className={`${S.muted} text-right mb-1`}>{data.city ?? ""}</div>
 
       {/* Current temp */}
       <div className="flex items-center gap-4">
-        <div className="text-[48px] xl:text-[56px] leading-none">{iconFor(current?.code)}</div>
-        <div className="text-[72px] xl:text-[96px] leading-none font-bold text-sky-700 tabular-nums">
+        <div className="text-[clamp(36px,3.6vw,60px)] leading-none">{iconFor(current?.code)}</div>
+        <div className="text-[clamp(56px,5.6vw,110px)] leading-none font-bold text-sky-700 tabular-nums">
           {Math.round(current?.temperature)}°
         </div>
-        <div className="text-sky-500 text-lg font-medium leading-snug">{current?.summary ?? ""}</div>
+        <div className="text-sky-500 text-[clamp(16px,1.6vw,22px)] font-medium leading-snug">{current?.summary ?? ""}</div>
       </div>
 
       {/* 08:00 / 13:00 / 18:00 snapshots */}
@@ -158,12 +158,12 @@ function WeatherCard({ apiBase, location, refreshTick }) {
           const h = byHour.get(hr) || {};
           return (
             <div key={i} className="text-center">
-              <div className="text-sky-400 text-sm">{String(hr).padStart(2,"0")}:00</div>
-              <div className="text-2xl xl:text-3xl my-1">{iconFor(h.code)}</div>
-              <div className="font-semibold text-sky-700 text-lg">
+              <div className="text-sky-400 text-[clamp(12px,1.1vw,16px)]">{String(hr).padStart(2,"0")}:00</div>
+              <div className="text-[clamp(18px,1.8vw,30px)] my-1">{iconFor(h.code)}</div>
+              <div className="font-semibold text-sky-700 text-[clamp(14px,1.3vw,20px)]">
                 {h.temp != null ? Math.round(h.temp) : "-"}°
               </div>
-              <div className={`${S.muted} text-sm`}>
+              <div className={`${S.muted}`}>
                 {h.windSpeed != null ? Math.round(h.windSpeed) : "-"} mph · {degToCompass(h.windDir)}
               </div>
             </div>
@@ -172,13 +172,13 @@ function WeatherCard({ apiBase, location, refreshTick }) {
       </div>
 
       {/* 7-day forecast — scrolls if needed */}
-      <div className="mt-4 border-t border-stone-100 pt-3 flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-2">
+        <div className="mt-4 border-t border-stone-100 pt-3 flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-2">
         {daily?.slice(0, 7).map((d, i) => (
-          <div key={i} className="flex items-center justify-between text-lg">
+          <div key={i} className="flex items-center justify-between text-[clamp(14px,1.3vw,20px)]">
             <div className="text-sky-500 w-36 xl:w-44 truncate font-medium">
               {new Date(d.date).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
             </div>
-            <div className="text-xl xl:text-2xl">{iconFor(d.code)}</div>
+            <div className="text-[clamp(18px,1.8vw,28px)]">{iconFor(d.code)}</div>
             <div className="text-right tabular-nums w-28 xl:w-36">
               <span className="text-sky-700 font-semibold">{Math.round(d.tmax)}°</span>
               <span className={`${S.muted} ml-2`}>{Math.round(d.tmin)}°</span>
@@ -236,20 +236,20 @@ function NewsTicker({ apiBase, feeds, refreshTick }) {
 
   // Common wrapper — h-full so it matches the height of the Coming Up card alongside it
   const wrap = (children) => (
-    <div className="cream-card p-5 flex flex-col h-full" style={{ border: "1px solid rgba(180,155,140,0.4)" }}>
-      <h3 className={S.title}>News</h3>
+      <div className="cream-card p-5 flex flex-col h-full" style={{ border: "1px solid rgba(180,155,140,0.4)" }}>
+        <h3 className={S.title}>News</h3>
       {children}
     </div>
   );
 
   if (!feedQuery) return wrap(
-    <p className={`${S.muted} text-lg`}>Add RSS feeds in Settings to show news.</p>
+    <p className={`${S.muted} text-[clamp(14px,1.3vw,20px)]`}>Add RSS feeds in Settings to show news.</p>
   );
   if (err)        return wrap(
-    <p className="text-red-400 text-lg">News unavailable — check feed URLs in Settings.</p>
+    <p className="text-red-400 text-[clamp(14px,1.3vw,20px)]">News unavailable — check feed URLs in Settings.</p>
   );
   if (!items.length) return wrap(
-    <p className={`${S.muted} text-lg`}>Loading news…</p>
+    <p className={`${S.muted} text-[clamp(14px,1.3vw,20px)]`}>Loading news…</p>
   );
 
   return wrap(
@@ -259,10 +259,10 @@ function NewsTicker({ apiBase, feeds, refreshTick }) {
         className="flex-1"
         style={{ opacity: visible ? 1 : 0, transition: `opacity ${TICKER_FADE_MS}ms ease` }}
       >
-        <p className={`font-medium ${S.primary} text-xl leading-snug`}>
+        <p className={`font-medium ${S.primary} text-[clamp(16px,1.5vw,24px)] leading-snug`}>
           {item?.title ?? ""}
         </p>
-        <p className={`text-sm ${S.muted} mt-2`}>
+        <p className={`${S.muted} mt-2`}>
           {item?.source}{item?.pubDate ? ` · ${fmtDate(item.pubDate)}` : ""}
         </p>
       </div>
@@ -318,10 +318,10 @@ function MealsPanel({ apiBase, tz, refreshTick, mealsUrl }) {
 
   return (
     <div className={`${S.card} flex-shrink-0`}>
-      <h3 className="text-xl font-semibold tracking-tight mb-3 text-amber-700 text-center">Meals</h3>
+      <h3 className="text-[clamp(18px,1.6vw,26px)] font-semibold tracking-tight mb-3 text-amber-700 text-center">Meals</h3>
       <ul className="space-y-1.5">
         {ordered.map((e, i) => (
-          <li key={i} className="flex items-baseline justify-between text-lg gap-3">
+          <li key={i} className="flex items-baseline justify-between text-[clamp(14px,1.3vw,20px)] gap-3">
             <span className="text-amber-500 font-medium w-24 flex-shrink-0">
               {new Intl.DateTimeFormat(undefined, { weekday: "short", timeZone: tz }).format(new Date(e.day))}
             </span>
@@ -379,7 +379,7 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars, onHasContent }
       <h3 className={S.title}>Coming Up</h3>
       <ul className="space-y-2">
         {items.map((item, idx) => (
-          <li key={idx} className="flex justify-between text-lg gap-4">
+          <li key={idx} className="flex justify-between text-[clamp(14px,1.3vw,20px)] gap-4">
             <span className="text-[#B87868] font-medium flex-shrink-0">
               {new Intl.DateTimeFormat(undefined, { weekday:"short", day:"numeric", month:"short" })
                 .format(new Date(`${item.day}T00:00:00`))}
@@ -469,10 +469,10 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
       <div className="cream-card h-full p-4 flex flex-col">
         {/* Header */}
         <div className="flex-shrink-0 mb-2">
-          <h3 className="text-xl font-semibold text-stone-700">{monthRange}</h3>
+          <h3 className="text-[clamp(18px,1.6vw,26px)] font-semibold text-stone-700">{monthRange}</h3>
         </div>
         {/* Day-of-week labels */}
-        <div className="flex-shrink-0 grid grid-cols-7 gap-1 text-center text-sm font-semibold text-stone-400 mb-1">
+        <div className="flex-shrink-0 grid grid-cols-7 gap-1 text-center text-[clamp(12px,1.1vw,16px)] font-semibold text-stone-400 mb-1">
           {wkLabels.map(w => <div key={w}>{w}</div>)}
         </div>
         {/* Day grid — fills remaining height */}
@@ -492,7 +492,7 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
               >
                 <div className="flex items-start justify-between">
                   <div>{getBinIcon(k)}</div>
-                  <div className={`text-lg 2xl:text-xl 3xl:text-2xl font-semibold leading-none ${today ? "text-white" : "text-stone-600"}`}>
+                  <div className={`text-[clamp(14px,1.2vw,22px)] font-semibold leading-none ${today ? "text-white" : "text-stone-600"}`}>
                     {d.getDate()}
                   </div>
                 </div>
@@ -506,7 +506,7 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
                     return (
                       <div
                         key={idx}
-                        className={`truncate text-[11px] xl:text-[13px] 2xl:text-[15px] 3xl:text-[18px] 4xl:text-[20px] leading-tight ${
+                        className={`truncate text-[clamp(10px,0.9vw,16px)] leading-tight ${
                           today
                             ? "text-white/90"
                             : isAll
