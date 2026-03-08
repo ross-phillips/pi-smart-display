@@ -68,10 +68,13 @@ sudo apt-get install --no-install-recommends -y -qq \
 # Chromium package name changed between RPi OS versions:
 #   Bullseye / older Bookworm → chromium-browser  (RPi Foundation repo)
 #   Newer Bookworm / Trixie   → chromium          (standard Debian repo)
-if apt-cache show chromium-browser &>/dev/null 2>&1; then
+# Use apt-cache policy to check for a real installation candidate (not just a cache entry)
+has_candidate() { apt-cache policy "$1" 2>/dev/null | grep "Candidate:" | grep -qv "(none)"; }
+
+if has_candidate chromium-browser; then
   sudo apt-get install --no-install-recommends -y -qq chromium-browser
   CHROMIUM_BIN="chromium-browser"
-else
+elif has_candidate chromium; then
   sudo apt-get install --no-install-recommends -y -qq chromium
   CHROMIUM_BIN="chromium"
   # Symlink so kiosk scripts can always call 'chromium-browser'
@@ -79,6 +82,8 @@ else
     sudo ln -sf "$(command -v chromium)" /usr/local/bin/chromium-browser
     ok "Symlinked chromium → chromium-browser"
   fi
+else
+  die "No Chromium package found — check your apt sources"
 fi
 ok "Chromium $($CHROMIUM_BIN --version 2>/dev/null | awk '{print $2}' || echo 'installed')"
 
