@@ -6,6 +6,10 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        '3xl': '2560px',  // 4K TVs and large monitors
+        '4xl': '3200px',  // native 4K
+      },
       fontSize: {
         'xs': '1rem',      // 16px (was 12px)
         'sm': '1.125rem',  // 18px (was 14px)

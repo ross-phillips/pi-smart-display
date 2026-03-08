@@ -234,9 +234,9 @@ function NewsTicker({ apiBase, feeds, refreshTick }) {
   const item  = items[idx];
   const total = Math.min(items.length, 20);
 
-  // Common wrapper — always visible with clear border so the card never disappears
+  // Common wrapper — h-full so it matches the height of the Coming Up card alongside it
   const wrap = (children) => (
-    <div className="cream-card p-5 flex flex-col min-h-[120px]" style={{ border: "1px solid rgba(180,155,140,0.4)" }}>
+    <div className="cream-card p-5 flex flex-col h-full" style={{ border: "1px solid rgba(180,155,140,0.4)" }}>
       <h3 className={S.title}>News</h3>
       {children}
     </div>
@@ -375,7 +375,7 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars, onHasContent }
   }
 
   return (
-    <div className={`${S.card} flex-shrink-0`}>
+    <div className={`${S.card} h-full flex flex-col`}>
       <h3 className={S.title}>Coming Up</h3>
       <ul className="space-y-2">
         {items.map((item, idx) => (
@@ -492,7 +492,7 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
               >
                 <div className="flex items-start justify-between">
                   <div>{getBinIcon(k)}</div>
-                  <div className={`text-lg font-semibold leading-none ${today ? "text-white" : "text-stone-600"}`}>
+                  <div className={`text-lg 2xl:text-xl 3xl:text-2xl font-semibold leading-none ${today ? "text-white" : "text-stone-600"}`}>
                     {d.getDate()}
                   </div>
                 </div>
@@ -506,7 +506,7 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
                     return (
                       <div
                         key={idx}
-                        className={`truncate text-[11px] xl:text-[13px] leading-tight ${
+                        className={`truncate text-[11px] xl:text-[13px] 2xl:text-[15px] 3xl:text-[18px] 4xl:text-[20px] leading-tight ${
                           today
                             ? "text-white/90"
                             : isAll
