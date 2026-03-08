@@ -17,6 +17,9 @@ Open `http://<pi-ip>:5173/settings` to configure:
 - Location + timezone
 - Module toggles
 - Theme palette
+- Performance mode and reduced motion
+- Layout presets
+- Optional admin token
 
 ## Deployment
-See `docs/install-pi.md` for the one-command install flow.
+See `docs/install-pi.md` for the one-command install flow and `docs/SPRINT_SECURITY_AND_PI_DEPLOY.md` for security and Pi hardening details.

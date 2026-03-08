@@ -4,10 +4,10 @@
 Raspberry Pi kiosk-style smart display that shows time/date, weather, news, meals, and a 4-week calendar view.
 
 ## Architecture
-- Frontend: React + Vite + Tailwind (`src/SmartDisplay.jsx`)
-- Backend: Node + Express (`server/server.js`)
+- Frontend: React + Vite + Tailwind (`frontend/src/SmartDisplay.jsx`)
+- Backend: Node + Express (`backend/server/server.js`)
 - Data sources: Open-Meteo for weather, RSS/Atom for news, ICS calendars for events
-- Deployment: PM2 for server process, Chromium kiosk for display
+- Deployment: PM2 + systemd kiosk + Chromium
 
 ## Key Features
 - Fullscreen clock and date header
@@ -19,23 +19,27 @@ Raspberry Pi kiosk-style smart display that shows time/date, weather, news, meal
 
 ## API Endpoints
 - `GET /api/weather?lat={lat}&lon={lon}`
-- `GET /api/news?u={encodedFeedUrl}&u={encodedFeedUrl}`
-- `GET /api/caldays?u={icsUrl}&tz={tz}&start=YYYY-MM-DD&end=YYYY-MM-DD`
+- `GET /api/news?u={encodedFeedUrl}&u={encodedFeedUrl}` (optional; defaults to configured feeds)
+- `GET /api/caldays?u={icsUrl}&u={icsUrl}&tz={tz}&start=YYYY-MM-DD&end=YYYY-MM-DD`
 - `GET /api/meals?u={icsUrl}&tz={tz}`
+- `GET /api/config`
+- `POST /api/config`
+- `GET /api/health`
 - `POST /api/clear-cache`
 
 ## Frontend Data Flow
-- Weather: fetches `/api/weather` on refresh interval
+- Weather: fetches `/api/weather` on refresh interval (config-driven)
 - News: fetches `/api/news` with configured feeds
-- Meals: fetches `/api/meals` with a hardcoded ICS URL
-- Calendar: fetches `/api/caldays` for primary calendar and bin collection calendar
+- Meals: fetches `/api/meals` with configured meals calendar
+- Calendar: fetches `/api/caldays` for multiple calendars and optional bin calendar
+- Settings: reads/writes `/api/config`
 
 ## Operations and Kiosk
-- `deploy-pi.md` documents Pi deployment and kiosk setup
-- PM2 config provided via `ecosystem.config.js`
-- Kiosk scripts and systemd services included (e.g., `kiosk.sh`, `start-kiosk.sh`, `motion.service`)
+- `docs/SPRINT_SECURITY_AND_PI_DEPLOY.md` details hardening and Pi deployment
+- `docs/install-pi.md` documents Pi deployment and kiosk setup
+- PM2 manages the backend service
+- systemd kiosk units and scripts included in `ops/`
 
 ## Notable Constraints
-- Hardcoded calendar URLs and file paths
-- In-memory cache only
-- Extensive debug logging in production server
+- External feeds require connectivity; large iCloud calendars may be multi‑MB
+- Calendar feeds must be allowlisted (configured URLs are auto‑trusted)
