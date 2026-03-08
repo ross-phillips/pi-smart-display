@@ -336,7 +336,7 @@ function MealsPanel({ apiBase, tz, refreshTick, mealsUrl }) {
 }
 
 // ─── Coming Up ───────────────────────────────────────────────────────────────
-function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
+function ContextHighlights({ apiBase, tz, refreshTick, calendars, onHasContent }) {
   const [items, setItems] = useState([]);
   const [err, setErr]     = useState(null);
 
@@ -363,12 +363,16 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
           .filter(it => it.title)
           .slice(0, 5);
         setItems(upcoming);
+        onHasContent?.(upcoming.length > 0);
       })
       .catch(e => { if (e.name !== "AbortError") setErr(e); });
     return () => ctrl.abort();
   }, [apiBase, tz, refreshTick, calQuery]);
 
-  if (!calQuery || err || !items.length) return null;
+  if (!calQuery || err || !items.length) {
+    onHasContent?.(false);
+    return null;
+  }
 
   return (
     <div className={`${S.card} flex-shrink-0`}>
@@ -416,7 +420,13 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
 
   const isToday = (d) => new Date(d).toDateString() === now.toDateString();
   const wkLabels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-  const monthRange = `${new Intl.DateTimeFormat(undefined, { month:"long", timeZone: tz }).format(days[0])} — ${new Intl.DateTimeFormat(undefined, { month:"long", timeZone: tz }).format(days[27])}`;
+  const fmtMonth = (d) => new Intl.DateTimeFormat(undefined, { month:"long", timeZone: tz }).format(d);
+  const fmtYear  = (d) => new Intl.DateTimeFormat(undefined, { year:"numeric", timeZone: tz }).format(d);
+  const startMonth = fmtMonth(days[0]);
+  const endMonth   = fmtMonth(days[27]);
+  const monthRange = startMonth === endMonth
+    ? `${startMonth} ${fmtYear(days[0])}`
+    : `${startMonth} — ${endMonth} ${fmtYear(days[27])}`;
 
   const getBinIcon = (dayStr) => {
     for (const ev of (binEventsByDay[dayStr] || [])) {
@@ -525,6 +535,9 @@ export default function SmartDisplay({ config, apiBase = "/api" }) {
   const refreshTick = useRefresh(refreshMs);
   const apiRoot    = apiBase || "/api";
 
+  // Track whether Coming Up has real content so news can expand when it doesn't
+  const [contextHasItems, setContextHasItems] = useState(false);
+
   // 2-hour full reload to prevent memory creep
   useEffect(() => {
     const t = setTimeout(() => window.location.reload(), 2 * 60 * 60 * 1000);
@@ -559,14 +572,15 @@ export default function SmartDisplay({ config, apiBase = "/api" }) {
       <div className="flex flex-col flex-1 min-w-0 gap-5 px-6 py-6 xl:px-8 xl:py-7 overflow-hidden">
         <Clock tz={location?.tz} />
 
-        {/* Coming Up + News ticker — side by side at equal width */}
+        {/* Coming Up + News ticker — side by side when both have content, else news full-width */}
         {(layout?.showContext !== false || layout?.showNews !== false) && (
           <div className="flex gap-5 flex-shrink-0">
             {layout?.showContext !== false && (
-              <div className="flex-1 min-w-0">
+              <div className={`min-w-0 transition-all duration-300 ${contextHasItems ? "flex-1" : "hidden"}`}>
                 <ContextHighlights
                   apiBase={apiRoot} tz={location?.tz}
                   refreshTick={refreshTick} calendars={stableCalendars}
+                  onHasContent={setContextHasItems}
                 />
               </div>
             )}
