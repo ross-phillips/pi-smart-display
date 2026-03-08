@@ -2,28 +2,21 @@ import React, { useEffect, useMemo, useState } from "react";
 
 /**
  * SmartDisplay.jsx
- * A single-file React component showing:
- * - Calendars (via ICS through a local proxy)
- * - Weather (Open-Meteo via proxy)
- * - Latest news (RSS via proxy)
- *
- * Props you can pass:
- *   - calendars: [{ name: string, url: string }]   // ICS URLs
- *   - feeds: [{ name: string, url: string }]       // RSS/Atom feed URLs
- *   - location: { lat: number, lon: number, tz?: string }
- *   - refreshMs: number                            // default 15 min
- *   - apiBase: string                              // default "/api"
+ * Layout: two full-height columns
+ *   Left  — Clock · Coming Up · News · Calendar (fills remaining space)
+ *   Right — Weather (grows) · Meals (fixed)
  */
 
-const defaultStyle = {
-  sectionTitle: "text-[20px] font-semibold tracking-tight mb-3 text-rose-700",
-  card: "glass-card-dark glass-shadow-dark p-5 motion-fade-up text-rose-900",
-  grid: "grid gap-6 xl:gap-8",
-  gridCols: "grid-cols-1 xl:grid-cols-[1fr_22%]",
-  heading: "text-[36px] xl:text-[44px] font-bold tracking-tight text-rose-800",
-  sub: "text-base text-rose-400",
+// ─── Shared style tokens ──────────────────────────────────────────────────────
+const S = {
+  card:    "cream-card p-5 motion-fade-up",
+  title:   "text-xl font-semibold tracking-tight mb-3 text-stone-700",
+  muted:   "text-stone-400",
+  primary: "text-stone-800",
+  soft:    "text-stone-500",
 };
 
+// ─── Hooks ───────────────────────────────────────────────────────────────────
 function useRefresh(ms) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -33,14 +26,29 @@ function useRefresh(ms) {
   return tick;
 }
 
+function useNightMode(tz) {
+  const [night, setNight] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const hour = parseInt(
+        new Intl.DateTimeFormat(undefined, { hour: "numeric", hour12: false, timeZone: tz }).format(new Date()),
+        10
+      );
+      setNight(hour >= 22 || hour < 7);
+    };
+    check();
+    const id = setInterval(check, 60_000);
+    return () => clearInterval(id);
+  }, [tz]);
+  return night;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function fmtDate(d, tz) {
   try {
     return new Intl.DateTimeFormat(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
+      hour: "2-digit", minute: "2-digit",
+      weekday: "short", day: "2-digit", month: "short",
       timeZone: tz,
     }).format(new Date(d));
   } catch {
@@ -48,6 +56,30 @@ function fmtDate(d, tz) {
   }
 }
 
+function iconFor(code) {
+  if (code === 0)                                             return <i className="fas fa-sun text-amber-400" />;
+  if ([1, 2].includes(code))                                 return <i className="fas fa-cloud-sun text-amber-300" />;
+  if (code === 3)                                            return <i className="fas fa-cloud text-stone-400" />;
+  if ([45, 48].includes(code))                               return <i className="fas fa-smog text-stone-400" />;
+  if ([51,53,55,61,63,65,80,81,82].includes(code))           return <i className="fas fa-cloud-rain text-sky-400" />;
+  if ([71,73,75,77,85,86].includes(code))                    return <i className="fas fa-snowflake text-sky-300" />;
+  if ([95,96,99].includes(code))                             return <i className="fas fa-bolt text-amber-400" />;
+  return <i className="fas fa-thermometer-half text-stone-400" />;
+}
+
+function degToCompass(deg) {
+  if (deg == null || Number.isNaN(deg)) return "-";
+  const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
+const PALETTES = {
+  "kitchen-pink": "",
+  "clean-neutral": "palette-neutral",
+  "evening-sage":  "palette-sage",
+};
+
+// ─── Clock ───────────────────────────────────────────────────────────────────
 function Clock({ tz }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -56,130 +88,102 @@ function Clock({ tz }) {
   }, []);
 
   const parts = new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZone: tz,
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false, timeZone: tz,
   }).formatToParts(now);
   const get = (t) => parts.find((p) => p.type === t)?.value ?? "00";
   const timeStr = `${get("hour")}:${get("minute")}:${get("second")}`;
-
   const dateStr = new Intl.DateTimeFormat(undefined, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: tz,
+    weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: tz,
   }).format(now);
 
   return (
-    <div className="flex items-baseline gap-8 mb-8">
-      <div className="leading-none text-[140px] xl:text-[180px] font-semibold tracking-tight tabular-nums text-rose-900">
+    <div className="flex-shrink-0">
+      <div className="leading-none text-[110px] xl:text-[148px] font-bold tracking-tight tabular-nums text-stone-900">
         {timeStr}
       </div>
-      <div className="text-[90px] xl:text-[110px] text-rose-400 font-medium tracking-tight">{dateStr}</div>
+      <div className="text-[26px] xl:text-[32px] text-stone-500 font-medium tracking-wide mt-1">
+        {dateStr}
+      </div>
     </div>
   );
 }
 
-function iconFor(code) {
-  // minimal mapping (can expand later)
-  if (code === 0) return "☀️";
-  if ([1,2].includes(code)) return "🌤️";
-  if (code === 3) return "☁️";
-  if ([45,48].includes(code)) return "🌫️";
-  if ([51,53,55,61,63,65,80,81,82].includes(code)) return "🌧️";
-  if ([71,73,75,77,85,86].includes(code)) return "❄️";
-  if ([95,96,99].includes(code)) return "⛈️";
-  return "🌡️";
-}
-
-function degToCompass(deg) {
-  if (deg == null || Number.isNaN(deg)) return "-";
-  const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
-  const idx = Math.round(deg / 22.5) % 16;
-  return dirs[idx];
-}
-
+// ─── Weather ─────────────────────────────────────────────────────────────────
 function WeatherCard({ apiBase, location, refreshTick }) {
   const [data, setData] = useState(null);
-  const [err, setErr] = useState(null);
+  const [err, setErr]   = useState(null);
 
   useEffect(() => {
-    const abortController = new AbortController();
-    const url = `${apiBase}/weather?lat=${location.lat}&lon=${location.lon}`;
-    fetch(url, { signal: abortController.signal })
-      .then(r => r.json())
-      .then(setData)
-      .catch((err) => {
-        if (err.name !== 'AbortError') {
-          setErr(err);
-        }
-      });
-    return () => abortController.abort();
+    const ctrl = new AbortController();
+    fetch(`${apiBase}/weather?lat=${location.lat}&lon=${location.lon}`, { signal: ctrl.signal })
+      .then(r => r.json()).then(setData)
+      .catch(e => { if (e.name !== "AbortError") setErr(e); });
+    return () => ctrl.abort();
   }, [apiBase, location.lat, location.lon, refreshTick]);
 
-  if (err) return <div className={defaultStyle.card}>Weather error: {String(err)}</div>;
-  if (!data) return <div className={defaultStyle.card}>Loading weather…</div>;
+  if (err)   return <div className={`${S.card} flex-1`}>Weather error</div>;
+  if (!data) return <div className={`${S.card} flex-1`}>Loading weather…</div>;
 
   const { current, hourly, daily } = data;
   return (
-    <div className={defaultStyle.card}>
-      <div className="flex items-baseline justify-end">
-        <div className={defaultStyle.sub}>{data.city ?? ""}</div>
-      </div>
-      <div className="flex items-center gap-5 xl:gap-6">
-        <div className="text-[56px] xl:text-[64px] leading-none">{iconFor(current?.code)}</div>
-        <div className="text-[60px] xl:text-[115px] leading-none font-semibold text-rose-900">{Math.round(current?.temperature)}°</div>
-        <div className="text-rose-600 text-xl xl:text-xl">{current?.summary ?? ""}</div>
+    <div className={`${S.card} flex-1 min-h-0 flex flex-col overflow-hidden`}>
+      {/* City */}
+      <div className={`${S.muted} text-right text-sm mb-1`}>{data.city ?? ""}</div>
+
+      {/* Current temp */}
+      <div className="flex items-center gap-4">
+        <div className="text-[48px] xl:text-[56px] leading-none">{iconFor(current?.code)}</div>
+        <div className="text-[72px] xl:text-[96px] leading-none font-bold text-sky-700 tabular-nums">
+          {Math.round(current?.temperature)}°
+        </div>
+        <div className="text-sky-500 text-lg font-medium leading-snug">{current?.summary ?? ""}</div>
       </div>
 
-      {/* Today snapshots: 08:00, 13:00, 18:00 */}
-      <div className="mt-5 xl:mt-6 grid grid-cols-3 gap-7">
-        {(() => {
-          const targets = [8, 13, 18];
+      {/* 08:00 / 13:00 / 18:00 snapshots */}
+      <div className="mt-4 grid grid-cols-3 gap-3 border-t border-stone-100 pt-4">
+        {[8, 13, 18].map((hr, i) => {
           const byHour = new Map((hourly || []).map(h => [new Date(h.time).getHours(), h]));
-          return targets.map((hr, i) => {
-            const h = byHour.get(hr) || {};
-            return (
-              <div key={i} className="text-center">
-                <div className="text-xl xl:text-xl text-rose-400">{String(hr).padStart(2, '0')}:00</div>
-                <div className="text-3xl xl:text-4xl">{iconFor(h.code)}</div>
-                <div className="text-xl xl:text-xl font-semibold text-rose-900">{h.temp != null ? Math.round(h.temp) : '-'}°</div>
-                <div className="text-base xl:text-xl text-rose-400">
-                  {h.windSpeed != null && !Number.isNaN(h.windSpeed) ? Math.round(h.windSpeed) : "-"} mph • {degToCompass(h.windDir)}
-                </div>
+          const h = byHour.get(hr) || {};
+          return (
+            <div key={i} className="text-center">
+              <div className="text-sky-400 text-sm">{String(hr).padStart(2,"0")}:00</div>
+              <div className="text-2xl xl:text-3xl my-1">{iconFor(h.code)}</div>
+              <div className="font-semibold text-sky-700 text-lg">
+                {h.temp != null ? Math.round(h.temp) : "-"}°
               </div>
-            );
-          });
-        })()}
-      </div>
-
-      {/* 7-day vertical forecast */}
-      <div className="mt-6 xl:mt-7 grid grid-cols-1 gap-4 xl:gap-5">
-        {daily?.slice(0, 7).map((d, i) => (
-            <div key={i} className="flex items-center justify-between text-xl xl:text-xl">
-              <div className="text-rose-500 w-44 xl:w-56 truncate">
-                {new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
-              </div>
-              <div className="w-10 xl:w-12 text-center text-2xl xl:text-3xl">{iconFor(d.code)}</div>
-              <div className="text-right tabular-nums w-44 xl:w-56">
-                <span className="text-rose-900 font-semibold text-xl xl:text-2xl">{Math.round(d.tmax)}°</span>
-                <span className="text-rose-400 ml-3 text-xl xl:text-xl">{Math.round(d.tmin)}°</span>
+              <div className={`${S.muted} text-sm`}>
+                {h.windSpeed != null ? Math.round(h.windSpeed) : "-"} mph · {degToCompass(h.windDir)}
               </div>
             </div>
-          ))}
+          );
+        })}
+      </div>
+
+      {/* 7-day forecast — scrolls if needed */}
+      <div className="mt-4 border-t border-stone-100 pt-3 flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-2">
+        {daily?.slice(0, 7).map((d, i) => (
+          <div key={i} className="flex items-center justify-between text-lg">
+            <div className="text-sky-500 w-36 xl:w-44 truncate font-medium">
+              {new Date(d.date).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+            </div>
+            <div className="text-xl xl:text-2xl">{iconFor(d.code)}</div>
+            <div className="text-right tabular-nums w-28 xl:w-36">
+              <span className="text-sky-700 font-semibold">{Math.round(d.tmax)}°</span>
+              <span className={`${S.muted} ml-2`}>{Math.round(d.tmin)}°</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
+// ─── News ─────────────────────────────────────────────────────────────────────
 function NewsCard({ apiBase, feeds, refreshTick }) {
   const [items, setItems] = useState([]);
-  const [err, setErr] = useState(null);
+  const [err, setErr]     = useState(null);
 
-  // Stable key to avoid re-fetching when feeds array reference changes but content is the same
   const feedQuery = useMemo(
     () => feeds.map(f => encodeURIComponent(f.url)).join("&u="),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,30 +192,24 @@ function NewsCard({ apiBase, feeds, refreshTick }) {
 
   useEffect(() => {
     if (!feedQuery) return;
-    const abortController = new AbortController();
-    fetch(`${apiBase}/news?u=${feedQuery}`, { signal: abortController.signal })
-      .then(r => r.json())
-      .then(setItems)
-      .catch((err) => {
-        if (err.name !== 'AbortError') {
-          setErr(err);
-        }
-      });
-    return () => abortController.abort();
+    const ctrl = new AbortController();
+    fetch(`${apiBase}/news?u=${feedQuery}`, { signal: ctrl.signal })
+      .then(r => r.json()).then(setItems)
+      .catch(e => { if (e.name !== "AbortError") setErr(e); });
+    return () => ctrl.abort();
   }, [apiBase, feedQuery, refreshTick]);
 
-  if (err) return <div className={defaultStyle.card}>News error: {String(err)}</div>;
-  if (!items?.length) return <div className={defaultStyle.card}>Loading news…</div>;
+  if (err)           return <div className={S.card}>News error</div>;
+  if (!items?.length) return <div className={S.card}>Loading news…</div>;
 
   return (
-    <div className={defaultStyle.card}>
-      <h3 className={defaultStyle.sectionTitle}>Latest News</h3>
+    <div className={S.card}>
+      <h3 className={S.title}>Latest News</h3>
       <ul className="space-y-3">
-        {items.slice(0, 10).map((it, i) => (
+        {items.slice(0, 8).map((it, i) => (
           <li key={i} className="leading-snug">
-            {/* Links are not useful in kiosk mode — render as plain text */}
-            <span className="font-medium text-rose-900">{it.title}</span>
-            <div className="text-xs text-rose-400">{it.source} • {fmtDate(it.pubDate)}</div>
+            <span className={`font-medium ${S.primary}`}>{it.title}</span>
+            <div className={`text-xs ${S.muted}`}>{it.source} · {fmtDate(it.pubDate)}</div>
           </li>
         ))}
       </ul>
@@ -219,54 +217,50 @@ function NewsCard({ apiBase, feeds, refreshTick }) {
   );
 }
 
+// ─── Meals ───────────────────────────────────────────────────────────────────
 function MealsPanel({ apiBase, tz, refreshTick, mealsUrl }) {
   const [items, setItems] = useState([]);
-  const [err, setErr] = useState(null);
+  const [err, setErr]     = useState(null);
 
   useEffect(() => {
-    const abortController = new AbortController();
     if (!mealsUrl) return;
-    const q = encodeURIComponent(mealsUrl);
-    const url = `${apiBase}/meals?u=${q}&tz=${encodeURIComponent(tz)}`;
-
-    fetch(url, { signal: abortController.signal })
+    const ctrl = new AbortController();
+    fetch(
+      `${apiBase}/meals?u=${encodeURIComponent(mealsUrl)}&tz=${encodeURIComponent(tz)}`,
+      { signal: ctrl.signal }
+    )
       .then(r => r.ok ? r.json() : r.json().then(b => Promise.reject(new Error(b?.error || `HTTP ${r.status}`))))
-      .then(data => setItems(Array.isArray(data) ? data : []))
-      .catch((err) => {
-        if (err.name !== 'AbortError') {
-          setErr(err);
-        }
-      });
-    return () => abortController.abort();
+      .then(d => setItems(Array.isArray(d) ? d : []))
+      .catch(e => { if (e.name !== "AbortError") setErr(e); });
+    return () => ctrl.abort();
   }, [apiBase, tz, refreshTick, mealsUrl]);
 
-  if (err) return <div className={defaultStyle.card}>Meals error: {String(err.message || err)}</div>;
+  if (err) return <div className={S.card}>Meals error</div>;
 
-  // Reorder to Monday-first week without changing backend data
-  const byDay = new Map((items || []).map((d) => [d.day, d]));
-  const fmtYmd = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
+  const fmtYmd = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year:"numeric", month:"2-digit", day:"2-digit" });
   const now = new Date();
   const monday = new Date(now);
-  const dow = (now.getDay() + 6) % 7; // 0 = Monday
-  monday.setDate(now.getDate() - dow);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const byDay = new Map((items || []).map(d => [d.day, d]));
   const ordered = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const key = fmtYmd.format(d);
-    const found = byDay.get(key);
-    return found || { day: key, title: null };
+    return byDay.get(key) || { day: key, title: null };
   });
 
   return (
-    <div className={defaultStyle.card}>
-      <h3 className="text-[32px] xl:text-[36px] font-semibold tracking-tight mb-3 text-rose-800 text-center">Meals Planner</h3>
-      <ul className="space-y-2">
+    <div className={`${S.card} flex-shrink-0`}>
+      <h3 className="text-xl font-semibold tracking-tight mb-3 text-amber-700 text-center">Meals</h3>
+      <ul className="space-y-1.5">
         {ordered.map((e, i) => (
-          <li key={i} className="flex items-center justify-between text-xl xl:text-xl">
-            <div className="text-rose-500">{new Intl.DateTimeFormat(undefined, { weekday: 'long', timeZone: tz }).format(new Date(e.day))}</div>
-            <div className="text-rose-900 font-medium text-right truncate ml-6">
-              {e.title ?? <span className="text-rose-300 italic">—</span>}
-            </div>
+          <li key={i} className="flex items-baseline justify-between text-lg gap-3">
+            <span className="text-amber-500 font-medium w-24 flex-shrink-0">
+              {new Intl.DateTimeFormat(undefined, { weekday: "short", timeZone: tz }).format(new Date(e.day))}
+            </span>
+            <span className="text-amber-800 font-medium text-right truncate min-w-0">
+              {e.title ?? <span className="text-stone-300 italic font-normal">—</span>}
+            </span>
           </li>
         ))}
       </ul>
@@ -274,11 +268,11 @@ function MealsPanel({ apiBase, tz, refreshTick, mealsUrl }) {
   );
 }
 
+// ─── Coming Up ───────────────────────────────────────────────────────────────
 function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
   const [items, setItems] = useState([]);
-  const [err, setErr] = useState(null);
+  const [err, setErr]     = useState(null);
 
-  // Stable query string — avoids re-fetching when calendars array reference changes but content is the same
   const calQuery = useMemo(
     () => (calendars?.[0]?.url ? encodeURIComponent(calendars[0].url) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -287,40 +281,39 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
 
   useEffect(() => {
     if (!calQuery) return;
-    const abortController = new AbortController();
+    const ctrl = new AbortController();
+    const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year:"numeric", month:"2-digit", day:"2-digit" });
     const now = new Date();
-    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
-    const startStr = fmt.format(now);
-    const end = new Date(now);
-    end.setDate(now.getDate() + 7);
-    const endStr = fmt.format(end);
-    fetch(`${apiBase}/caldays?u=${calQuery}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
-      .then((res) => res.ok ? res.json() : res.json().then(b => Promise.reject(new Error(b?.error || `HTTP ${res.status}`))))
-      .then((data) => {
+    const end = new Date(now); end.setDate(now.getDate() + 7);
+    fetch(
+      `${apiBase}/caldays?u=${calQuery}&tz=${encodeURIComponent(tz)}&start=${fmt.format(now)}&end=${fmt.format(end)}`,
+      { signal: ctrl.signal }
+    )
+      .then(r => r.ok ? r.json() : r.json().then(b => Promise.reject(new Error(b?.error || `HTTP ${r.status}`))))
+      .then(data => {
         const upcoming = (Array.isArray(data) ? data : [])
-          .flatMap((day) => (day.titles || []).map((title) => ({ day: day.day, title: title.title || title })))
-          .filter((item) => item.title)
+          .flatMap(day => (day.titles || []).map(t => ({ day: day.day, title: t.title || t })))
+          .filter(it => it.title)
           .slice(0, 5);
         setItems(upcoming);
       })
-      .catch((error) => {
-        if (error.name !== "AbortError") setErr(error);
-      });
-    return () => abortController.abort();
+      .catch(e => { if (e.name !== "AbortError") setErr(e); });
+    return () => ctrl.abort();
   }, [apiBase, tz, refreshTick, calQuery]);
 
-  if (!calQuery) return null;
-  if (err) return <div className={defaultStyle.card}>Context error: {String(err)}</div>;
-  if (!items.length) return null;
+  if (!calQuery || err || !items.length) return null;
 
   return (
-    <div className={defaultStyle.card}>
-      <h3 className={defaultStyle.sectionTitle}>Coming Up</h3>
+    <div className={`${S.card} flex-shrink-0`}>
+      <h3 className={S.title}>Coming Up</h3>
       <ul className="space-y-2">
         {items.map((item, idx) => (
-          <li key={idx} className="flex justify-between text-lg">
-            <span className="text-rose-500">{item.day}</span>
-            <span className="text-rose-900 font-medium truncate ml-4">{item.title}</span>
+          <li key={idx} className="flex justify-between text-lg gap-4">
+            <span className="text-[#B87868] font-medium flex-shrink-0">
+              {new Intl.DateTimeFormat(undefined, { weekday:"short", day:"numeric", month:"short" })
+                .format(new Date(`${item.day}T00:00:00`))}
+            </span>
+            <span className={`${S.primary} font-medium truncate`}>{item.title}</span>
           </li>
         ))}
       </ul>
@@ -328,118 +321,121 @@ function ContextHighlights({ apiBase, tz, refreshTick, calendars }) {
   );
 }
 
+// ─── Month Calendar ───────────────────────────────────────────────────────────
 function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }) {
   const now = new Date();
-
-  // State declared first so getBinIcon closure can reference it
-  const [eventsByDay, setEventsByDay] = useState({});
+  const [eventsByDay, setEventsByDay]       = useState({});
   const [binEventsByDay, setBinEventsByDay] = useState({});
 
-  // Find Monday of current week - memoize to prevent constant re-renders
   const monday = useMemo(() => {
     const m = new Date(now);
-    const dow = (now.getDay() + 6) % 7; // 0..6 Monday..Sunday
-    m.setDate(now.getDate() - dow);
+    m.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     return m;
-  }, [now.getTime() - (now.getTime() % (7 * 24 * 60 * 60 * 1000))]); // Only recalculate weekly
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now.getTime() - (now.getTime() % (7 * 24 * 60 * 60 * 1000))]);
 
-  // Build 4 weeks (28 days)
-  const days = useMemo(() => Array.from({ length: 28 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
-  }), [monday]);
+  const days = useMemo(() =>
+    Array.from({ length: 28 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    }), [monday]);
 
-  // Stable calendar query
   const calQuery = useMemo(
     () => (calendars?.[0]?.url ? encodeURIComponent(calendars[0].url) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(calendars)]
   );
 
-  const wkLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const isToday = (d) => new Date(d).toDateString() === now.toDateString();
-  const monthRange = `${new Intl.DateTimeFormat(undefined, { month:'long', timeZone: tz }).format(days[0])} — ${new Intl.DateTimeFormat(undefined, { month:'long', timeZone: tz }).format(days[27])}`;
+  const wkLabels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const monthRange = `${new Intl.DateTimeFormat(undefined, { month:"long", timeZone: tz }).format(days[0])} — ${new Intl.DateTimeFormat(undefined, { month:"long", timeZone: tz }).format(days[27])}`;
 
-  // Bin icon function — declared after binEventsByDay state
   const getBinIcon = (dayStr) => {
-    const binEvents = binEventsByDay[dayStr] || [];
-    for (const event of binEvents) {
-      const title = event.title || '';
-      if (title.includes('Rubbish Bin Collection')) {
-        return <i className="fas fa-trash text-green-500 text-lg"></i>;
-      } else if (title.includes('Recycling Bin Collection')) {
-        return <i className="fas fa-recycle text-blue-500 text-lg"></i>;
-      } else if (title.includes('Garden Waste Bin Collection')) {
-        return <i className="fas fa-leaf text-amber-600 text-lg"></i>;
-      }
+    for (const ev of (binEventsByDay[dayStr] || [])) {
+      const t = ev.title || "";
+      if (t.includes("Rubbish Bin"))   return <i className="fas fa-trash text-green-500 text-sm" />;
+      if (t.includes("Recycling Bin")) return <i className="fas fa-recycle text-blue-400 text-sm" />;
+      if (t.includes("Garden Waste"))  return <i className="fas fa-leaf text-amber-500 text-sm" />;
     }
     return null;
   };
 
   useEffect(() => {
     if (!calQuery) return;
-    const abortController = new AbortController();
-    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
+    const ctrl = new AbortController();
+    const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year:"numeric", month:"2-digit", day:"2-digit" });
     const startStr = fmt.format(days[0]);
-    const endStr = fmt.format(days[27]);
+    const endStr   = fmt.format(days[27]);
 
-    const toMap = (arr) => {
-      const map = {};
-      for (const it of (Array.isArray(arr) ? arr : [])) map[it.day] = it.titles || [];
-      return map;
+    const guardJson = r => r.ok ? r.json() : r.json().then(b => Promise.reject(new Error(b?.error || `HTTP ${r.status}`)));
+    const toMap = arr => {
+      const m = {};
+      for (const it of (Array.isArray(arr) ? arr : [])) m[it.day] = it.titles || [];
+      return m;
     };
-    const guardJson = (r) => r.ok ? r.json() : r.json().then(b => Promise.reject(new Error(b?.error || `HTTP ${r.status}`)));
 
-    // Fetch main calendar
-    fetch(`${apiBase}/caldays?u=${calQuery}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
-      .then(guardJson)
-      .then(arr => setEventsByDay(toMap(arr)))
-      .catch((err) => { if (err.name !== 'AbortError') console.error('Calendar fetch error:', err); });
+    fetch(`${apiBase}/caldays?u=${calQuery}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: ctrl.signal })
+      .then(guardJson).then(a => setEventsByDay(toMap(a)))
+      .catch(e => { if (e.name !== "AbortError") console.error("Calendar:", e); });
 
     if (binCalendar?.enabled && binCalendar?.url) {
-      const binQ = encodeURIComponent(binCalendar.url);
-      fetch(`${apiBase}/caldays?u=${binQ}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: abortController.signal })
-        .then(guardJson)
-        .then(arr => setBinEventsByDay(toMap(arr)))
-        .catch((err) => { if (err.name !== 'AbortError') console.error('Bin collection fetch error:', err); });
+      fetch(`${apiBase}/caldays?u=${encodeURIComponent(binCalendar.url)}&tz=${encodeURIComponent(tz)}&start=${startStr}&end=${endStr}`, { signal: ctrl.signal })
+        .then(guardJson).then(a => setBinEventsByDay(toMap(a)))
+        .catch(e => { if (e.name !== "AbortError") console.error("Bin:", e); });
     }
-
-    return () => abortController.abort();
+    return () => ctrl.abort();
   }, [apiBase, tz, monday, refreshTick, calQuery]);
 
   return (
-    <div className="mt-6">
-      <div className={`${defaultStyle.card} w-full p-6 flex flex-col`}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[32px] xl:text-[36px] font-semibold tracking-tight text-rose-800">{monthRange}</h3>
+    <div className="flex-1 min-h-0">
+      <div className="cream-card h-full p-4 flex flex-col">
+        {/* Header */}
+        <div className="flex-shrink-0 mb-2">
+          <h3 className="text-xl font-semibold text-stone-700">{monthRange}</h3>
         </div>
-        <div className="grid grid-cols-7 gap-2 text-center text-xl xl:text-xl text-rose-400 mb-2 font-bold">
-          {wkLabels.map((w) => (<div key={w}>{w}</div>))}
+        {/* Day-of-week labels */}
+        <div className="flex-shrink-0 grid grid-cols-7 gap-1 text-center text-sm font-semibold text-stone-400 mb-1">
+          {wkLabels.map(w => <div key={w}>{w}</div>)}
         </div>
-        <div className="grid grid-cols-7 gap-2 auto-rows-fr flex-1">
+        {/* Day grid — fills remaining height */}
+        <div className="flex-1 min-h-0 grid grid-cols-7 gap-1" style={{ gridTemplateRows: "repeat(4, 1fr)" }}>
           {days.map((d, i) => {
-            const k = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+            const k = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year:"numeric", month:"2-digit", day:"2-digit" }).format(d);
             const titles = eventsByDay[k] || [];
+            const today = isToday(d);
             return (
-              <div key={i} className={`rounded-md border border-rose-100 flex flex-col p-2 ${isToday(d) ? 'bg-white/60' : ''}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    {getBinIcon(k)}
+              <div
+                key={i}
+                className={`rounded-lg border flex flex-col p-1.5 overflow-hidden ${
+                  today
+                    ? "bg-[#C07868] border-[#C07868]"
+                    : "border-stone-100 hover:border-stone-200"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>{getBinIcon(k)}</div>
+                  <div className={`text-lg font-semibold leading-none ${today ? "text-white" : "text-stone-600"}`}>
+                    {d.getDate()}
                   </div>
-                  <div className="text-2xl text-rose-800 text-right">{d.getDate()}</div>
                 </div>
-                <div className="mt-1 space-y-1 overflow-hidden">
+                <div className="mt-0.5 space-y-0.5 overflow-hidden min-h-0">
                   {titles.map((t, idx) => {
-                    const isObj = t && typeof t === 'object';
-                    const titleText = isObj ? (t.title ?? '') : String(t ?? '');
+                    const isObj = t && typeof t === "object";
+                    const titleText = isObj ? (t.title ?? "") : String(t ?? "");
                     const isAll = isObj && !!t.allDay;
-                    const timeText = (!isAll && isObj && t.time) ? `${t.time} ` : '';
+                    const timeText = (!isAll && isObj && t.time) ? `${t.time} ` : "";
                     const label = `${timeText}${titleText}`.trim();
                     return (
                       <div
                         key={idx}
-                        className={`truncate text-[14.4px] xl:text-[18px] ${isAll ? 'bg-rose-100 text-rose-800 rounded px-1 font-medium' : 'text-rose-700'}`}
+                        className={`truncate text-[11px] xl:text-[13px] leading-tight ${
+                          today
+                            ? "text-white/90"
+                            : isAll
+                              ? "bg-stone-100 text-stone-700 rounded px-0.5 font-medium"
+                              : "text-stone-500"
+                        }`}
                       >
                         {label}
                       </div>
@@ -455,76 +451,81 @@ function MonthCalendarPanel({ tz, apiBase, refreshTick, calendars, binCalendar }
   );
 }
 
-export default function SmartDisplay({
-  config,
-  apiBase = "/api",
-}) {
+// ─── Root ─────────────────────────────────────────────────────────────────────
+export default function SmartDisplay({ config, apiBase = "/api" }) {
   const { calendars = [], feeds = [], location, layout, mealsCalendar, binCalendar } = config || {};
-  const refreshMs = config?.refreshMs || 15 * 60 * 1000;
+  const refreshMs  = config?.refreshMs || 15 * 60 * 1000;
   const refreshTick = useRefresh(refreshMs);
-  const apiRoot = apiBase || "/api";
+  const apiRoot    = apiBase || "/api";
 
-  // Add periodic full page reload to prevent memory issues over long runtimes
+  // 2-hour full reload to prevent memory creep
   useEffect(() => {
-    const fullReloadInterval = 2 * 60 * 60 * 1000; // 2 hours
-    const reloadTimer = setTimeout(() => {
-      window.location.reload();
-    }, fullReloadInterval);
-    return () => clearTimeout(reloadTimer);
+    const t = setTimeout(() => window.location.reload(), 2 * 60 * 60 * 1000);
+    return () => clearTimeout(t);
   }, []);
 
-  // Stable memoised versions of array props — prevents child useEffect deps
-  // from firing on every render when array content hasn't actually changed
-  const stableFeeds = useMemo(() => feeds, // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(feeds)]);
-  const stableCalendars = useMemo(() => calendars, // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(calendars)]);
+  const stableFeeds     = useMemo(() => feeds,     [JSON.stringify(feeds)]);     // eslint-disable-line
+  const stableCalendars = useMemo(() => calendars, [JSON.stringify(calendars)]); // eslint-disable-line
 
-  const reduceMotion = layout?.reducedMotion;
-  const performanceMode = layout?.performanceMode;
+  const reduceMotion    = layout?.reducedMotion;
+  const performanceMode = layout?.performanceMode ?? true;
+  const isNight         = useNightMode(location?.tz);
+  const paletteClass    = PALETTES[config?.theme?.palette ?? "kitchen-pink"] ?? "";
 
   return (
-    <div className={`min-h-screen w-full px-6 py-6 xl:px-10 xl:py-10 text-rose-900 ${performanceMode ? "performance-mode" : ""}`}>
-      <div className="ambient-bg">
-        {!performanceMode ? (
+    <div className={`h-screen w-full overflow-hidden flex text-stone-800 transition-all duration-1000
+      ${isNight ? "night-mode" : ""}
+      ${performanceMode ? "performance-mode" : ""}
+      ${paletteClass}`}
+    >
+      {/* Ambient background */}
+      <div className="cream-bg">
+        {!performanceMode && (
           <>
-            <div className={`ambient-orb ${reduceMotion ? "orb-static" : ""}`} style={{ top: "10%", left: "8%" }} />
-            <div className={`ambient-orb orb-2 ${reduceMotion ? "orb-static" : ""}`} style={{ bottom: "12%", right: "10%" }} />
+            <div className={`ambient-orb orb-1 ${reduceMotion ? "orb-static" : ""}`} />
+            <div className={`ambient-orb orb-2 ${reduceMotion ? "orb-static" : ""}`} />
           </>
-        ) : null}
+        )}
       </div>
-      <main className={`${defaultStyle.grid} ${defaultStyle.gridCols}`}>
-        <div className="space-y-6">
-          <Clock tz={location?.tz} />
-          {layout?.showContext !== false ? (
-            <ContextHighlights apiBase={apiRoot} tz={location?.tz} refreshTick={refreshTick} calendars={stableCalendars} />
-          ) : null}
-          {layout?.showNews !== false ? (
-            <NewsCard apiBase={apiRoot} feeds={stableFeeds} refreshTick={refreshTick} />
-          ) : null}
-        </div>
-        <div className="space-y-6 xl:col-start-2 xl:justify-self-end w-full">
-          {layout?.showWeather !== false ? (
-            <div className="xl:w-full">
-              <WeatherCard apiBase={apiRoot} location={location} refreshTick={refreshTick} />
-            </div>
-          ) : null}
-          {layout?.showMeals !== false ? (
-            <div className="xl:w-full">
-              <MealsPanel apiBase={apiRoot} tz={location?.tz} refreshTick={refreshTick} mealsUrl={mealsCalendar?.url} />
-            </div>
-          ) : null}
-        </div>
-      </main>
-      {layout?.showCalendar !== false ? (
-        <MonthCalendarPanel
-          tz={location?.tz}
-          apiBase={apiRoot}
-          refreshTick={refreshTick}
-          calendars={stableCalendars}
-          binCalendar={binCalendar}
-        />
-      ) : null}
+
+      {/* ── Left column: Clock · Coming Up · News · Calendar ── */}
+      <div className="flex flex-col flex-1 min-w-0 gap-5 px-6 py-6 xl:px-8 xl:py-7 overflow-hidden">
+        <Clock tz={location?.tz} />
+
+        {layout?.showContext !== false && (
+          <ContextHighlights
+            apiBase={apiRoot} tz={location?.tz}
+            refreshTick={refreshTick} calendars={stableCalendars}
+          />
+        )}
+
+        {layout?.showNews !== false && (
+          <NewsCard apiBase={apiRoot} feeds={stableFeeds} refreshTick={refreshTick} />
+        )}
+
+        {/* Calendar fills whatever vertical space remains */}
+        {layout?.showCalendar !== false && (
+          <MonthCalendarPanel
+            tz={location?.tz} apiBase={apiRoot}
+            refreshTick={refreshTick}
+            calendars={stableCalendars}
+            binCalendar={binCalendar}
+          />
+        )}
+      </div>
+
+      {/* ── Right column: Weather (grows) + Meals (fixed) ── */}
+      <div className="flex flex-col gap-5 w-[340px] xl:w-[390px] flex-shrink-0 py-6 xl:py-7 pr-6 xl:pr-8 overflow-hidden">
+        {layout?.showWeather !== false && (
+          <WeatherCard apiBase={apiRoot} location={location} refreshTick={refreshTick} />
+        )}
+        {layout?.showMeals !== false && (
+          <MealsPanel
+            apiBase={apiRoot} tz={location?.tz}
+            refreshTick={refreshTick} mealsUrl={mealsCalendar?.url}
+          />
+        )}
+      </div>
     </div>
   );
 }

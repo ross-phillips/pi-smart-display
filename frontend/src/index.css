@@ -1,76 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* extras used by the components */
+/* ─── Base ─────────────────────────────────────────────── */
+:root {
+  font-family: "Outfit", "SF Pro Display", system-ui, sans-serif;
+  background-color: #FAF7F2;
+}
+
+html, body {
+  overflow: hidden;
+  height: 100%;
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* display font setup */
-:root {
-  font-family: "Cormorant Garamond", "Libre Baskerville", "Times New Roman", serif;
-  background-color: #fef7f7;
-}
-
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap');
-
-/* Apple-esque Glass Panel (Light) */
-.glass-card {
-  border-radius: 22px;
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.glass-shadow {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.05);
-}
-
-/* Apple-esque Glass Panel (Dark) */
-.glass-card-dark {
-  border-radius: 28px;
-  background-color: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 199, 211, 0.35);
-}
-.glass-shadow-dark {
-  box-shadow: 0 16px 30px rgba(233, 169, 179, 0.2), 0 4px 10px rgba(120, 62, 78, 0.08);
-}
-
-.ambient-bg {
+/* ─── Background ────────────────────────────────────────── */
+.cream-bg {
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(circle at 20% 15%, rgba(255, 223, 230, 0.6), transparent 55%),
-    radial-gradient(circle at 80% 20%, rgba(255, 245, 248, 0.8), transparent 60%),
-    radial-gradient(circle at 50% 85%, rgba(255, 214, 225, 0.5), transparent 65%),
-    linear-gradient(180deg, #fff8fb 0%, #fdeff2 48%, #f9e2e8 100%);
+    radial-gradient(ellipse at 15% 10%, rgba(245, 228, 210, 0.55), transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(250, 240, 225, 0.7), transparent 55%),
+    radial-gradient(ellipse at 50% 90%, rgba(240, 220, 200, 0.4), transparent 60%),
+    linear-gradient(160deg, #FAF8F3 0%, #F7F2EA 45%, #F2EAE0 100%);
 }
 
 .ambient-orb {
   position: absolute;
-  width: 260px;
-  height: 260px;
   border-radius: 999px;
-  background: rgba(255, 196, 210, 0.45);
-  filter: blur(20px);
-  animation: orb-drift 18s ease-in-out infinite;
+  will-change: transform;
+  animation: orb-drift 22s ease-in-out infinite;
+}
+
+.ambient-orb.orb-1 {
+  width: 320px;
+  height: 320px;
+  background: rgba(230, 205, 185, 0.35);
+  filter: blur(50px);
+  top: 8%;
+  left: 6%;
 }
 
 .ambient-orb.orb-2 {
-  width: 320px;
-  height: 320px;
-  background: rgba(255, 235, 242, 0.6);
-  animation-delay: -6s;
+  width: 400px;
+  height: 400px;
+  background: rgba(220, 195, 175, 0.28);
+  filter: blur(60px);
+  bottom: 10%;
+  right: 8%;
+  animation-delay: -8s;
 }
 
-.orb-static {
-  animation: none;
+.orb-static { animation: none; }
+
+@keyframes orb-drift {
+  0%   { transform: translate(-15px, -8px) scale(1); }
+  50%  { transform: translate(20px, 15px) scale(1.05); }
+  100% { transform: translate(-15px, -8px) scale(1); }
 }
 
-.performance-mode .glass-card-dark {
-  box-shadow: none;
+/* ─── Cards ─────────────────────────────────────────────── */
+.cream-card {
+  border-radius: 20px;
+  background: rgba(255, 253, 249, 0.88);
+  border: 1px solid rgba(200, 178, 162, 0.28);
+  box-shadow:
+    0 2px 4px rgba(80, 50, 30, 0.04),
+    0 8px 24px rgba(80, 50, 30, 0.06);
+}
+
+.performance-mode .cream-card {
   backdrop-filter: none;
+  box-shadow: 0 1px 3px rgba(80, 50, 30, 0.08);
+}
+
+/* ─── Motion ────────────────────────────────────────────── */
+.motion-fade-up {
+  animation: fade-up 0.35s ease-out forwards;
+  opacity: 0;
+  transform: translateY(5px);
+}
+@keyframes fade-up {
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .performance-mode .motion-fade-up {
@@ -80,51 +96,42 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ambient-orb {
-    animation: none;
-  }
-  .motion-fade-up {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
+  .ambient-orb,
+  .motion-fade-up { animation: none; opacity: 1; transform: none; }
 }
 
-@keyframes orb-drift {
-  0% { transform: translate(-20px, -10px); }
-  50% { transform: translate(30px, 20px); }
-  100% { transform: translate(-20px, -10px); }
+/* ─── Night mode ─────────────────────────────────────────── */
+.night-mode {
+  filter: brightness(0.42) saturate(0.75);
 }
 
-/* Motion Utilities */
-.motion-fade-up {
-  animation: fade-up 0.3s ease-out forwards;
-  opacity: 0;
-  transform: translateY(6px);
+/* ─── Palette overrides ──────────────────────────────────── */
+.palette-neutral .cream-bg {
+  background: linear-gradient(160deg, #F8FAFA 0%, #F0F4F4 100%);
 }
-@keyframes fade-up {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.palette-neutral .cream-card {
+  border-color: rgba(148, 163, 184, 0.25);
 }
 
-.hover-lift {
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+.palette-sage .cream-bg {
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(190, 220, 205, 0.45), transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(175, 210, 190, 0.35), transparent 60%),
+    linear-gradient(160deg, #F2F8F4 0%, #EAF4EE 100%);
 }
-.hover-lift:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.08), 0 12px 18px rgba(0, 0, 0, 0.12);
+.palette-sage .cream-card {
+  border-color: rgba(100, 168, 140, 0.25);
 }
 
-/* Pi-specific font scaling */
-.text-xs { font-size: 0.875rem; } /* 14px */
-.text-sm { font-size: 1rem; } /* 16px */
-.text-base { font-size: 1.125rem; } /* 18px */
-.text-lg { font-size: 1.25rem; } /* 20px */
-.text-xl { font-size: 1.5rem; } /* 24px */
-.text-2xl { font-size: 1.875rem; } /* 30px */
-.text-3xl { font-size: 2.25rem; } /* 36px */
-.text-4xl { font-size: 3rem; } /* 48px */
-.text-5xl { font-size: 3.75rem; } /* 60px */
-.text-6xl { font-size: 4.5rem; } /* 72px */
+/* ─── Pi font scaling ────────────────────────────────────── */
+/* Override Tailwind defaults so text reads at arm's length */
+.text-xs   { font-size: 0.875rem; }  /* 14px */
+.text-sm   { font-size: 1rem;     }  /* 16px */
+.text-base { font-size: 1.125rem; }  /* 18px */
+.text-lg   { font-size: 1.25rem;  }  /* 20px */
+.text-xl   { font-size: 1.5rem;   }  /* 24px */
+.text-2xl  { font-size: 1.875rem; }  /* 30px */
+.text-3xl  { font-size: 2.25rem;  }  /* 36px */
+.text-4xl  { font-size: 3rem;     }  /* 48px */
+.text-5xl  { font-size: 3.75rem;  }  /* 60px */
+.text-6xl  { font-size: 4.5rem;   }  /* 72px */
