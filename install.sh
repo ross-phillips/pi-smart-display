@@ -63,9 +63,24 @@ step 3 "Installing X11, Chromium & tools"
 sudo apt-get install --no-install-recommends -y -qq \
   xserver-xorg \
   x11-xserver-utils \
-  chromium-browser \
   unclutter
-ok "Chromium $(chromium-browser --version 2>/dev/null | awk '{print $2}' || echo 'installed')"
+
+# Chromium package name changed between RPi OS versions:
+#   Bullseye / older Bookworm → chromium-browser  (RPi Foundation repo)
+#   Newer Bookworm / Trixie   → chromium          (standard Debian repo)
+if apt-cache show chromium-browser &>/dev/null 2>&1; then
+  sudo apt-get install --no-install-recommends -y -qq chromium-browser
+  CHROMIUM_BIN="chromium-browser"
+else
+  sudo apt-get install --no-install-recommends -y -qq chromium
+  CHROMIUM_BIN="chromium"
+  # Symlink so kiosk scripts can always call 'chromium-browser'
+  if ! command -v chromium-browser &>/dev/null; then
+    sudo ln -sf "$(command -v chromium)" /usr/local/bin/chromium-browser
+    ok "Symlinked chromium → chromium-browser"
+  fi
+fi
+ok "Chromium $($CHROMIUM_BIN --version 2>/dev/null | awk '{print $2}' || echo 'installed')"
 
 # =============================================================================
 # 4. PM2
