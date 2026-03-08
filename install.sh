@@ -152,17 +152,21 @@ XINITRC
 chmod +x "$HOME/.xinitrc"
 ok "~/.xinitrc configured"
 
-# ~/.bash_profile — launch X on tty1 console login (idempotent check)
-if ! grep -q "pi-smart-display" "$HOME/.bash_profile" 2>/dev/null; then
-  cat >> "$HOME/.bash_profile" << 'PROFILE'
+# ~/.profile — launch X on tty1 console login (idempotent check)
+# NOTE: We write to ~/.profile (not ~/.bash_profile) because:
+#   - On a fresh RPi OS Lite, ~/.bash_profile does not exist, so bash reads ~/.profile
+#   - If we create ~/.bash_profile, bash skips ~/.profile entirely, losing the system PATH
+#   - Writing to ~/.profile is the correct Debian convention for login-shell customisation
+if ! grep -q "pi-smart-display" "$HOME/.profile" 2>/dev/null; then
+  cat >> "$HOME/.profile" << 'PROFILE'
 
 # Pi Smart Display — start kiosk on tty1
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-  startx
+  exec startx
 fi
 PROFILE
 fi
-ok "~/.bash_profile updated"
+ok "~/.profile updated"
 
 # Enable console auto-login (B2 = Console Autologin)
 sudo raspi-config nonint do_boot_behaviour B2
