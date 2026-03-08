@@ -62,6 +62,7 @@ ok "Node $(node -v) / npm $(npm -v)"
 step 3 "Installing X11, Chromium & tools"
 sudo apt-get install --no-install-recommends -y -qq \
   xserver-xorg \
+  xinit \
   x11-xserver-utils \
   unclutter
 
